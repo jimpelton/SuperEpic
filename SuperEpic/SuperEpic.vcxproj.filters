@@ -13,12 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\boilerplate">
-      <UniqueIdentifier>{5fe4b932-dde6-48c4-8b88-a3935a58e9cb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\boilerplate">
-      <UniqueIdentifier>{fddf637e-418c-48e2-861d-527656a20e5d}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -27,52 +21,5 @@
     <ClCompile Include="SuperEpic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="boilerplate\shader.cpp">
-      <Filter>Source Files\boilerplate</Filter>
-    </ClCompile>
-    <ClCompile Include="boilerplate\texture.cpp">
-      <Filter>Source Files\boilerplate</Filter>
-    </ClCompile>
-    <ClCompile Include="boilerplate\vertexarrayobject.cpp">
-      <Filter>Source Files\boilerplate</Filter>
-    </ClCompile>
-    <ClCompile Include="boilerplate\view.cpp">
-      <Filter>Source Files\boilerplate</Filter>
-    </ClCompile>
-    <ClCompile Include="boilerplate\gl_strings.cpp">
-      <Filter>Source Files\boilerplate</Filter>
-    </ClCompile>
-    <ClCompile Include="boilerplate\util.cpp">
-      <Filter>Source Files\boilerplate</Filter>
-    </ClCompile>
-    <ClCompile Include="boilerplate\gl_log.cpp">
-      <Filter>Source Files\boilerplate</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="boilerplate\shader.h">
-      <Filter>Header Files\boilerplate</Filter>
-    </ClInclude>
-    <ClInclude Include="boilerplate\texture.h">
-      <Filter>Header Files\boilerplate</Filter>
-    </ClInclude>
-    <ClInclude Include="boilerplate\vertexarrayobject.h">
-      <Filter>Header Files\boilerplate</Filter>
-    </ClInclude>
-    <ClInclude Include="boilerplate\view.h">
-      <Filter>Header Files\boilerplate</Filter>
-    </ClInclude>
-    <ClInclude Include="boilerplate\gl_strings.h">
-      <Filter>Header Files\boilerplate</Filter>
-    </ClInclude>
-    <ClInclude Include="boilerplate\ordinal.h">
-      <Filter>Header Files\boilerplate</Filter>
-    </ClInclude>
-    <ClInclude Include="boilerplate\util.h">
-      <Filter>Header Files\boilerplate</Filter>
-    </ClInclude>
-    <ClInclude Include="boilerplate\gl_log.h">
-      <Filter>Header Files\boilerplate</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
