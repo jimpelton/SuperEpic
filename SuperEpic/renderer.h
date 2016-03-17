@@ -47,9 +47,18 @@ public:
 
 
 private:
+  /// \brief Render gallery previews.
+  void renderGalleryMode();
+
+  /// \brief Render selected image.
+  void renderImageMode();
+
   void renderTextures();
-  void renderSingleTexture(SDL_Texture *tex, int x, int y, int w, int h) const;
+//  void renderSingleTexture(SDL_Texture *tex, int x, int y, int w, int h) const;
+  
   void loadSingleTexture(const std::string &filePath);
+
+  void PrintEvent(const SDL_Event*);
 
 private:
   SDL_Window *m_window;
@@ -57,10 +66,9 @@ private:
   SDL_Point m_winDims;         ///< The current window dimensions
   SDL_Point m_winPos;          ///< The current window position
   
-  int m_numPrevImages;         ///< Number of images to display in gallery mode.
   DisplayMode m_mode;          ///< Gallery view, or image view
 
-
+  size_t m_galleryStartIndex;   ///< The index within the gallery to start at.
   std::vector<SDL_Texture*> m_images;  ///< Textures currently loaded into memory.
 
 };
