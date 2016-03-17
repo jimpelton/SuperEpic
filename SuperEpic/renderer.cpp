@@ -1,11 +1,11 @@
 
 
 #include "renderer.h"
-#include "logger.h"
 
 #include <SDL_image.h>
 
 #include <iostream>
+#include <cassert>
 
 
 namespace
@@ -144,17 +144,19 @@ void
 Renderer::renderTextures()
 {
   const int imgWidth{ m_winDims.x / NUM_IMAGES_TO_DRAW };
-  const float halfWin{ m_winDims.y * 0.5f };
+  const float halfWinY{ m_winDims.y * 0.5f };
+  
   int xpos{ 0 };
   for (auto &tex : m_images) {
     int texWidth, texHeight;
     SDL_QueryTexture(tex, nullptr, nullptr, &texWidth, &texHeight);
-    
+    float aspect_ratio{ texWidth / static_cast<float>(texHeight) };
+
     SDL_Rect dest;
     dest.w = imgWidth;
-    dest.h = imgWidth / (texWidth / (float)texHeight);  // h = width / aspect_ratio
+    dest.h = static_cast<int>(imgWidth / aspect_ratio);
     dest.x = xpos;
-    dest.y = halfWin - (dest.h*0.5f);  // center image vertically
+    dest.y = static_cast<int>(halfWinY - (dest.h*0.5f));  // center image vertically
     
     SDL_RenderCopy(m_renderer, tex, nullptr, &dest);
     xpos += imgWidth;
@@ -166,7 +168,8 @@ Renderer::renderTextures()
 void
 Renderer::renderSingleTexture(SDL_Texture* tex, int x, int y, int w, int h) const
 {
-  //TODO: need to scale texture.
+  assert(tex != nullptr);
+
   SDL_Rect dest;
   dest.x = x; 
   dest.y = y;
