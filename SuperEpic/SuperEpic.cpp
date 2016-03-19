@@ -2,6 +2,11 @@
 #include <SDL.h>
 
 #include <iostream>
+#include <Kinect.h>
+#include <thread>
+
+#include "KinectSensor.h"
+
 
 namespace
 {
@@ -36,6 +41,21 @@ int main(int argc, char *argv[])
 
   SDL_DestroyWindow(window);
   SDL_Quit();
+
+
+  //KinectSensor::handCoords = new float[3];
+  KinectSensor::handCoords[0] = 0.0f;
+  KinectSensor::handCoords[1] = 0.0f;
+  KinectSensor::handCoords[2] = 0.0f;
+
+  std::thread t = std::thread(&KinectSensor::updateHandPosition);
+  int * cursor = { new int[2] };
+  while (1) {
+	  KinectSensor::mapHandToCursor(KinectSensor::handCoords, 1920, 1080, cursor);
+	  std::cout << cursor[0] << "\t\t" << cursor[1] << std::endl;
+	  Sleep(1000);
+  }
+	
   return 0;
 }
 
