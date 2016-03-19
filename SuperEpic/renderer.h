@@ -2,6 +2,7 @@
 #define epic_renderer_h__
 
 #include <SDL.h>
+
 #include <vector>
 #include <string>
 
@@ -45,32 +46,39 @@ public:
   void loop();
 
 
-
 private:
-  /// \brief Render gallery previews.
+  void onButtonUp(const SDL_MouseButtonEvent &event);
   void renderGalleryMode();
+  void renderImageViewMode();
 
-  /// \brief Render selected image.
-  void renderImageMode();
+  /// \brief Render the texture for the cursor
+  void renderCursorTexture();
 
-  void renderTextures();
+  /// \brief Renders five of the textures in m_images.
+  void renderImageTextures();
 //  void renderSingleTexture(SDL_Texture *tex, int x, int y, int w, int h) const;
   
   void loadSingleTexture(const std::string &filePath);
 
-  void PrintEvent(const SDL_Event*);
+
+  void printEvent(const SDL_Event*);
 
 private:
   SDL_Window *m_window;
   SDL_Renderer *m_renderer;
+
   SDL_Point m_winDims;         ///< The current window dimensions
   SDL_Point m_winPos;          ///< The current window position
+  SDL_Point m_cursPos;         ///< The current position of cursor/mouse/hand
+  SDL_Point m_cursDims;        ///< The current cursor dimensions
+
+  DisplayMode m_mode;            ///< Gallery view, or image view
+  //RenderStrategy *m_rendStrat  ///< The method to render current DisplayMode (gallery or image view)
+  size_t m_galleryStartIndex;    ///< The index within the gallery to start at.
   
-  DisplayMode m_mode;          ///< Gallery view, or image view
-
-  size_t m_galleryStartIndex;   ///< The index within the gallery to start at.
   std::vector<SDL_Texture*> m_images;  ///< Textures currently loaded into memory.
-
+  SDL_Texture *m_cursTex;              ///< The texture for the cursor.
+  SDL_Texture *m_imageModeTex;         ///< The image to display in image view mode.
 };
 
 
