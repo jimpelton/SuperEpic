@@ -18,9 +18,11 @@ namespace
   const int DEFAULT_WIN_Y{ SDL_WINDOWPOS_UNDEFINED };
 
   const float CURSOR_SCALE{ 0.11f };
+  const float DEFAULT_CURSOR_SPEED{ 1.0f };
+
   const int NUM_IMAGES_TO_DRAW{ 5 };
 
-  const std::string cursorTexturePath{ "res/crosshair.png" };
+  const char *DEFAULT_CURSOR_TEXTURE_PATH{ "res/crosshair.png" };
 
 } // namespace
 
@@ -40,6 +42,7 @@ Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
   , m_winPos{ winX, winY }
   , m_cursPos{ winWidth/2, winHeight/2 }
   , m_cursDims{ int(winHeight*CURSOR_SCALE), int(winHeight*CURSOR_SCALE) }
+  , m_cursorSpeed{ DEFAULT_CURSOR_SPEED }
   , m_mode{ DisplayMode::Gallery }
   , m_galleryStartIndex{ 0 }
   , m_images{ }
@@ -119,22 +122,20 @@ Renderer::init()
     return -1;
   }
 
-  SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2); // anti-aliasing
-  SDL_ShowCursor(0); // don't show mouse arrow.
-
   SDL_Texture *curtex{ nullptr };
-  curtex = IMG_LoadTexture(renderer, cursorTexturePath.c_str());
+  curtex = IMG_LoadTexture(renderer, DEFAULT_CURSOR_TEXTURE_PATH);
 
   if (curtex == nullptr) {
     std::cerr << "Could not load image texture: " << SDL_GetError() << std::endl;
     return -1;
   }
 
+  SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2); // anti-aliasing
+  SDL_ShowCursor(0); // don't show mouse arrow.
+
   m_window = window;
   m_renderer = renderer;
   m_cursTex = curtex;
-
-  
 
   return 0;
 }
@@ -147,13 +148,14 @@ Renderer::loop()
   while (!m_shouldQuit) {
 
     // pop events from the SDL event queue.
+    // When we start using the kinect to control, this may get replaced, or
+    // this is probably were the kinect gesture events will get checked.
     SDL_Event event;
     while (SDL_PollEvent(&event) != 0) {
       printEvent(&event);
       onEvent(event);
-    } // while(SDL_Poll...
+    }
 
-    // TODO: Check mouse coordinates from Kinect class
     SDL_RenderClear(m_renderer);
 
     switch (m_mode) {
@@ -179,7 +181,7 @@ Renderer::onEvent(const SDL_Event &event)
 {
   if (event.type == SDL_MOUSEMOTION) {
     onMouseMotionEvent(event.motion);
-  } // if SDL_MOUSEMOTION
+  }
 
   else if (event.type == SDL_WINDOWEVENT) {
     onWindowEvent(event.window);
@@ -205,8 +207,12 @@ Renderer::onMouseButtonUp(const SDL_MouseButtonEvent& button)
 {
   if (button.button == SDL_BUTTON_LEFT) {
     if (m_mode == DisplayMode::Gallery) {
+
+      // m_imageModeTex is now assigned in onMouseMotionEvent(), which is why
+      // we use m_cursPos instead of button click coordinates.
       int idx{ button.x / (m_winDims.x / NUM_IMAGES_TO_DRAW) };
       m_imageModeTex = m_images[idx];
+
       m_mode = DisplayMode::Image;
       std::cout << "Switch to Image View (image#: " << idx << ")\n";
     }
@@ -226,25 +232,32 @@ Renderer::onKeyDown(const SDL_KeyboardEvent& key)
   switch (key.keysym.sym) {
 
   case SDLK_ESCAPE:
-    m_shouldQuit = true;
+    if (m_mode == DisplayMode::Image) {
+      m_mode = DisplayMode::Gallery;
+    } else {
+      m_shouldQuit = true;
+    }
     break;
 
   case SDLK_f:
     toggleFullScreen();
     break;
-  } // switch
+  }
 }
 
 
 void
 Renderer::onWindowEvent(const SDL_WindowEvent& window)
 {
-  switch (window.type) {
-  case SDL_WINDOWEVENT_RESIZED:
+  switch (window.event) {
+
+  case SDL_WINDOWEVENT_SIZE_CHANGED:
     m_winDims.x = window.data1;
     m_winDims.y = window.data2;
     m_cursDims.x = static_cast<int>(m_winDims.y * 0.11f);
     m_cursDims.y = static_cast<int>(m_winDims.y * 0.11f);
+    break;
+
   }
 }
 
@@ -254,13 +267,15 @@ Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent& motion)
 {
   m_cursPos.x = motion.x;
   m_cursPos.y = motion.y;
-}
 
+  m_cursorImageHoverIndex = motion.x / (m_winDims.x / NUM_IMAGES_TO_DRAW);
+  
+}
 
 
 ////////////////////////////////////////////////////////////////////////////
 void
-Renderer::renderGalleryMode()
+Renderer::renderGalleryMode() const
 {
   renderImageTextures();
 }
@@ -268,7 +283,7 @@ Renderer::renderGalleryMode()
 
 ////////////////////////////////////////////////////////////////////////////
 void
-Renderer::renderImageViewMode()
+Renderer::renderImageViewMode() const
 {
   int texWidth, texHeight;
   SDL_QueryTexture(m_imageModeTex, nullptr, nullptr, &texWidth, &texHeight);
@@ -276,17 +291,19 @@ Renderer::renderImageViewMode()
 
   SDL_Rect dest;
   dest.h = m_winDims.y;
-  // TODO: width scaling is not quite correct, could be wider than window width.
+  // TODO: width scaling is not quite correct
+  // dest.w could end up being wider than actual window width.
   dest.w = static_cast<int>(m_winDims.y * aspect_ratio);   // aspect_ratio = w / h --> w = h * aspect_ratio
   dest.x = std::max<int>(m_winDims.x - dest.w, 0) / 2;
   dest.y = 0;
   
-
   SDL_RenderCopy(m_renderer, m_imageModeTex, nullptr, &dest);
 }
 
+
+////////////////////////////////////////////////////////////////////////////
 void
-Renderer::renderCursorTexture()
+Renderer::renderCursorTexture() const
 {
   SDL_Rect dest;
   dest.x = m_cursPos.x - (m_cursDims.x / 2);
@@ -300,7 +317,7 @@ Renderer::renderCursorTexture()
 
 ////////////////////////////////////////////////////////////////////////////
 void
-Renderer::renderImageTextures()
+Renderer::renderImageTextures() const
 {
   const int imgWidth{ m_winDims.x / NUM_IMAGES_TO_DRAW };
   const int halfWinY{ m_winDims.y / 2 };
@@ -313,7 +330,8 @@ Renderer::renderImageTextures()
   if (std::distance(beg, end) > NUM_IMAGES_TO_DRAW) {
     end = beg + NUM_IMAGES_TO_DRAW;
   }
-  
+
+  int idx{ 0 };
   std::for_each(beg, end,
     [&](SDL_Texture *tex)
   {
@@ -328,6 +346,12 @@ Renderer::renderImageTextures()
     dest.y = halfWinY - (dest.h / 2);                    // center image vertically
 
     SDL_RenderCopy(m_renderer, tex, nullptr, &dest);
+    
+    if (idx == m_cursorImageHoverIndex) {
+      renderImageSelectionRectangle(dest);
+    }
+    
+    idx += 1;
     xpos += imgWidth;
   });
   
@@ -347,6 +371,16 @@ Renderer::renderImageTextures()
 //  dest.h = h;
 //  SDL_RenderCopy(m_renderer, tex, nullptr, &dest);
 //}
+
+void
+Renderer::renderImageSelectionRectangle(const SDL_Rect &dest) const
+{
+  Uint8 r, g, b, a;
+  SDL_GetRenderDrawColor(m_renderer, &r, &g, &b, &a);
+  SDL_SetRenderDrawColor(m_renderer, 255, 0, 0, 0);
+  SDL_RenderDrawRect(m_renderer, &dest);
+  SDL_SetRenderDrawColor(m_renderer, r, g, b, a);
+}
 
 
 void
@@ -390,7 +424,7 @@ Renderer::loadSingleTexture(const std::string &path)
 }
 
 void 
-Renderer::printEvent(const SDL_Event * event)
+Renderer::printEvent(const SDL_Event * event) const
 {
   if (event->type == SDL_WINDOWEVENT) {
     switch (event->window.event) {

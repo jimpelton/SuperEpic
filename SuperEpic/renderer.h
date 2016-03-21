@@ -45,32 +45,33 @@ public:
   ////////////////////////////////////////////////////////////////////////////
   void loop();
 
+  void cursorSpeed(float s) { m_cursorSpeed = s; }
+  float cursorSpeed() const { return m_cursorSpeed; }
 
 private:
+  /// \brief Handle SDL events! :)
   void onEvent(const SDL_Event &event);
   void onMouseButtonUp(const SDL_MouseButtonEvent &event);
   void onKeyDown(const SDL_KeyboardEvent &event);
   void onWindowEvent(const SDL_WindowEvent &event);
   void onMouseMotionEvent(const SDL_MouseMotionEvent &event);
-
-  void renderGalleryMode();
-  void renderImageViewMode();
-
+  /// \brief Render 5 images in gallery mode.
+  void renderGalleryMode() const;
+  /// \brief Render the image pointed to by m_imageModeTex;
+  void renderImageViewMode() const;
   /// \brief Render the texture for the cursor
-  void renderCursorTexture();
-
+  void renderCursorTexture() const;
   /// \brief Renders five of the textures in m_images.
-  void renderImageTextures();
-
+  void renderImageTextures() const;
+  /// \brief Render a rectangle around the texture under the cursor.
+  void renderImageSelectionRectangle(const SDL_Rect &) const;
 //  void renderSingleTexture(SDL_Texture *tex, int x, int y, int w, int h) const;
-  
   /// \brief Toggle between windowed and fullscreen modes.
   void toggleFullScreen();
-
   /// \brief Load image into gpu memory and push onto m_images if successful.
   void loadSingleTexture(const std::string &filePath);
-
-  void printEvent(const SDL_Event*);
+  /// \brief Print info for only SDL_WindowEvents.
+  void printEvent(const SDL_Event*) const;
 
 private:
   SDL_Window *m_window;
@@ -78,8 +79,11 @@ private:
 
   SDL_Point m_winDims;         ///< The current window dimensions
   SDL_Point m_winPos;          ///< The current window position
+  
   SDL_Point m_cursPos;         ///< The current position of cursor/mouse/hand
   SDL_Point m_cursDims;        ///< The current cursor dimensions
+  float m_cursorSpeed;         ///< Scale the speed of the cursor.
+  int m_cursorImageHoverIndex; ///< The image index that the cursor is hovering over.
 
   DisplayMode m_mode;            ///< Gallery view, or image view
   //RenderStrategy *m_rendStrat  ///< The method to render current DisplayMode (gallery or image view)
@@ -88,6 +92,7 @@ private:
   std::vector<SDL_Texture*> m_images;  ///< Textures currently loaded into memory.
   SDL_Texture *m_cursTex;              ///< The texture for the cursor.
   SDL_Texture *m_imageModeTex;         ///< The image to display in image view mode.
+                                       ///< Note: m_imageModeTex != m_images[m_cursorImageHoverIndex], fyi!
 
   bool m_fullScreen;                   ///< If in fullscreen or not.
   bool m_shouldQuit;                   ///< If the main loop should exit.
