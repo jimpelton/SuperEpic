@@ -255,6 +255,7 @@ void keystrokeProcessing::processKeyboardInput(void)
 								//Do something in this case
 								printf("WARNING: Manually Enabling Image Selection Mode!\n");
 								imageSelectionMode = 1;
+								zoomLevel = 1;
 								imageViewerMode = 0;
 							}
 							else if (imageSelectionMode)
