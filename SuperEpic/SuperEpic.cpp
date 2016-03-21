@@ -2,6 +2,7 @@
 #include <SDL.h>
 
 #include <iostream>
+#include <keystrokeProcessing.h>
 
 namespace
 {
@@ -33,6 +34,10 @@ int main(int argc, char *argv[])
   if (window == nullptr) {
     std::cerr << "Coult not create window: " << SDL_GetError() << std::endl;
   }
+
+  keystrokeProcessing keyProcessor;
+  keyProcessor.processKeyboardInput();
+
 
   SDL_DestroyWindow(window);
   SDL_Quit();
