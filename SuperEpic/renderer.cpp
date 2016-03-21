@@ -22,7 +22,7 @@ namespace
 
   const int NUM_IMAGES_TO_DRAW{ 5 };
 
-  const char *DEFAULT_CURSOR_TEXTURE_PATH{ "res/crosshair.png" };
+  const char *DEFAULT_CURSOR_TEXTURE_PATH{ "../res/crosshair.png" };
 
 } // namespace
 
