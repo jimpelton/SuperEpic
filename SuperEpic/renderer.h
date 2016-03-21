@@ -87,7 +87,7 @@ private:
 
   DisplayMode m_mode;            ///< Gallery view, or image view
   //RenderStrategy *m_rendStrat  ///< The method to render current DisplayMode (gallery or image view)
-  size_t m_galleryStartIndex;    ///< The index within the gallery to start at.
+  int m_galleryStartIndex;    ///< The index within the gallery to start at.
 
   std::vector<SDL_Texture*> m_images;  ///< Textures currently loaded into memory.
   SDL_Texture *m_cursTex;              ///< The texture for the cursor.

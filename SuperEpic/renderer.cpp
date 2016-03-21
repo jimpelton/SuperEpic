@@ -26,6 +26,7 @@ namespace
 
 } // namespace
 
+#define ImgIndex(_idx) (_idx)+m_galleryStartIndex % m_images.size()
 
 ////////////////////////////////////////////////////////////////////////////
 Renderer::Renderer()
@@ -62,9 +63,6 @@ Renderer::~Renderer()
 
   if (m_cursTex != nullptr)     
     SDL_DestroyTexture(m_cursTex);
-  
-  if (m_imageModeTex != nullptr) 
-    SDL_DestroyTexture(m_imageModeTex);
 
   if (m_renderer != nullptr) 
     SDL_DestroyRenderer(m_renderer);
@@ -147,7 +145,7 @@ Renderer::loop()
 {
   while (!m_shouldQuit) {
 
-    // pop events from the SDL event queue.
+    // Pop events from the SDL event queue.
     // When we start using the kinect to control, this may get replaced, or
     // this is probably were the kinect gesture events will get checked.
     SDL_Event event;
@@ -176,6 +174,8 @@ Renderer::loop()
   std::cout << "Exiting render loop..." << "\n";
 }
 
+
+////////////////////////////////////////////////////////////////////////////
 void 
 Renderer::onEvent(const SDL_Event &event)
 {
@@ -208,10 +208,8 @@ Renderer::onMouseButtonUp(const SDL_MouseButtonEvent& button)
   if (button.button == SDL_BUTTON_LEFT) {
     if (m_mode == DisplayMode::Gallery) {
 
-      // m_imageModeTex is now assigned in onMouseMotionEvent(), which is why
-      // we use m_cursPos instead of button click coordinates.
       int idx{ button.x / (m_winDims.x / NUM_IMAGES_TO_DRAW) };
-      m_imageModeTex = m_images[idx];
+      m_imageModeTex = m_images[(m_galleryStartIndex+idx) % m_images.size()];
 
       m_mode = DisplayMode::Image;
       std::cout << "Switch to Image View (image#: " << idx << ")\n";
@@ -230,7 +228,6 @@ void
 Renderer::onKeyDown(const SDL_KeyboardEvent& key)
 {
   switch (key.keysym.sym) {
-
   case SDLK_ESCAPE:
     if (m_mode == DisplayMode::Image) {
       m_mode = DisplayMode::Gallery;
@@ -238,7 +235,17 @@ Renderer::onKeyDown(const SDL_KeyboardEvent& key)
       m_shouldQuit = true;
     }
     break;
-
+  case SDLK_LEFT:
+    if (m_mode == DisplayMode::Gallery) {
+      int i{ m_galleryStartIndex - 1 };
+      m_galleryStartIndex = i < 0 ? m_images.size() - 1 : i;
+    }
+    break;
+  case SDLK_RIGHT:
+    if (m_mode == DisplayMode::Gallery) {
+      m_galleryStartIndex = (m_galleryStartIndex + 1) % m_images.size();
+    }
+    break;
   case SDLK_f:
     toggleFullScreen();
     break;
@@ -246,6 +253,7 @@ Renderer::onKeyDown(const SDL_KeyboardEvent& key)
 }
 
 
+////////////////////////////////////////////////////////////////////////////
 void
 Renderer::onWindowEvent(const SDL_WindowEvent& window)
 {
@@ -262,6 +270,7 @@ Renderer::onWindowEvent(const SDL_WindowEvent& window)
 }
 
 
+////////////////////////////////////////////////////////////////////////////
 void
 Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent& motion)
 {
@@ -324,17 +333,9 @@ Renderer::renderImageTextures() const
   
   int xpos{ 0 };
 
-  // get the range of images we want to view
-  auto beg = std::begin(m_images) + m_galleryStartIndex;
-  auto end = std::end(m_images);
-  if (std::distance(beg, end) > NUM_IMAGES_TO_DRAW) {
-    end = beg + NUM_IMAGES_TO_DRAW;
-  }
-
   int idx{ 0 };
-  std::for_each(beg, end,
-    [&](SDL_Texture *tex)
-  {
+  while (idx < NUM_IMAGES_TO_DRAW) {
+    SDL_Texture *tex{ m_images[(m_galleryStartIndex + idx) % m_images.size()] };
     int texWidth, texHeight;
     SDL_QueryTexture(tex, nullptr, nullptr, &texWidth, &texHeight);
     float aspect_ratio{ texWidth / static_cast<float>(texHeight) };
@@ -346,14 +347,14 @@ Renderer::renderImageTextures() const
     dest.y = halfWinY - (dest.h / 2);                    // center image vertically
 
     SDL_RenderCopy(m_renderer, tex, nullptr, &dest);
-    
+
     if (idx == m_cursorImageHoverIndex) {
       renderImageSelectionRectangle(dest);
     }
-    
+
     idx += 1;
     xpos += imgWidth;
-  });
+  }
   
 }
 
@@ -372,6 +373,7 @@ Renderer::renderImageTextures() const
 //  SDL_RenderCopy(m_renderer, tex, nullptr, &dest);
 //}
 
+////////////////////////////////////////////////////////////////////////////
 void
 Renderer::renderImageSelectionRectangle(const SDL_Rect &dest) const
 {
@@ -383,6 +385,7 @@ Renderer::renderImageSelectionRectangle(const SDL_Rect &dest) const
 }
 
 
+////////////////////////////////////////////////////////////////////////////
 void
 Renderer::toggleFullScreen()
 {
@@ -423,6 +426,8 @@ Renderer::loadSingleTexture(const std::string &path)
   m_images.push_back(tex);
 }
 
+
+////////////////////////////////////////////////////////////////////////////
 void 
 Renderer::printEvent(const SDL_Event * event) const
 {
