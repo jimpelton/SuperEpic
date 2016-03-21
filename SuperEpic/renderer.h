@@ -47,7 +47,12 @@ public:
 
 
 private:
-  void onButtonUp(const SDL_MouseButtonEvent &event);
+  void onEvent(const SDL_Event &event);
+  void onMouseButtonUp(const SDL_MouseButtonEvent &event);
+  void onKeyDown(const SDL_KeyboardEvent &event);
+  void onWindowEvent(const SDL_WindowEvent &event);
+  void onMouseMotionEvent(const SDL_MouseMotionEvent &event);
+
   void renderGalleryMode();
   void renderImageViewMode();
 
@@ -56,10 +61,14 @@ private:
 
   /// \brief Renders five of the textures in m_images.
   void renderImageTextures();
+
 //  void renderSingleTexture(SDL_Texture *tex, int x, int y, int w, int h) const;
   
-  void loadSingleTexture(const std::string &filePath);
+  /// \brief Toggle between windowed and fullscreen modes.
+  void toggleFullScreen();
 
+  /// \brief Load image into gpu memory and push onto m_images if successful.
+  void loadSingleTexture(const std::string &filePath);
 
   void printEvent(const SDL_Event*);
 
@@ -75,10 +84,13 @@ private:
   DisplayMode m_mode;            ///< Gallery view, or image view
   //RenderStrategy *m_rendStrat  ///< The method to render current DisplayMode (gallery or image view)
   size_t m_galleryStartIndex;    ///< The index within the gallery to start at.
-  
+
   std::vector<SDL_Texture*> m_images;  ///< Textures currently loaded into memory.
   SDL_Texture *m_cursTex;              ///< The texture for the cursor.
   SDL_Texture *m_imageModeTex;         ///< The image to display in image view mode.
+
+  bool m_fullScreen;                   ///< If in fullscreen or not.
+  bool m_shouldQuit;                   ///< If the main loop should exit.
 };
 
 

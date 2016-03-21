@@ -5,8 +5,8 @@
 #include <SDL_image.h>
 
 #include <iostream>
-#include <cassert>
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 
 
@@ -20,7 +20,7 @@ namespace
   const float CURSOR_SCALE{ 0.11f };
   const int NUM_IMAGES_TO_DRAW{ 5 };
 
-  const std::string cursorTexturePath{ "./res/crosshair.png" };
+  const std::string cursorTexturePath{ "res/crosshair.png" };
 
 } // namespace
 
@@ -41,10 +41,12 @@ Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
   , m_cursPos{ winWidth/2, winHeight/2 }
   , m_cursDims{ int(winHeight*CURSOR_SCALE), int(winHeight*CURSOR_SCALE) }
   , m_mode{ DisplayMode::Gallery }
+  , m_galleryStartIndex{ 0 }
   , m_images{ }
   , m_cursTex{ nullptr }
   , m_imageModeTex{ nullptr }
-  , m_galleryStartIndex{ 0 }
+  , m_fullScreen{ false }
+  , m_shouldQuit{ false }
 {
 }
 
@@ -142,101 +144,118 @@ Renderer::init()
 void 
 Renderer::loop()
 {
-  bool shouldQuit{ false };
-  bool fullScreen{ false };
-
-  while (!shouldQuit) {
+  while (!m_shouldQuit) {
 
     // pop events from the SDL event queue.
     SDL_Event event;
     while (SDL_PollEvent(&event) != 0) {
       printEvent(&event);
-      
-      if (event.type == SDL_MOUSEMOTION) {
-        m_cursPos.x = event.motion.x;
-        m_cursPos.y = event.motion.y;
-      } // if SDL_MOUSEMOTION
-
-      else if (event.type == SDL_WINDOWEVENT) {
-        switch (event.window.event) {
-        
-        case SDL_WINDOWEVENT_SIZE_CHANGED:
-          m_winDims.x = event.window.data1;
-          m_winDims.y = event.window.data2;
-          m_cursDims.x = static_cast<int>(m_winDims.y * 0.11f);
-          m_cursDims.y = static_cast<int>(m_winDims.y * 0.11f);
-          break;
-        
-        } // switch
-      } // else if SDL_WINDOWEVENT
-
-      else if (event.type == SDL_KEYDOWN) {
-        switch (event.key.keysym.sym) {
-        
-        case SDLK_ESCAPE:
-          shouldQuit = true;
-          break;
-
-        case SDLK_f:
-          if (!fullScreen) {
-            SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-            fullScreen = true;
-          }
-          else {
-            SDL_SetWindowFullscreen(m_window, 0);
-            fullScreen = false;
-          }
-          break;
-        } // switch
-      } // else if SDL_KEYDOWN
-      
-      else if (event.type == SDL_MOUSEBUTTONUP) {
-          onButtonUp(event.button);
-      }
-
-      else if (event.type == SDL_QUIT) {
-        shouldQuit = true;
-      } // else if SDL_QUIT
-
+      onEvent(event);
     } // while(SDL_Poll...
 
-    
     // TODO: Check mouse coordinates from Kinect class
     SDL_RenderClear(m_renderer);
-    if (m_mode == DisplayMode::Gallery) {
+
+    switch (m_mode) {
+    case DisplayMode::Gallery:
       renderGalleryMode();
-    }
-    else {
+      break;
+    case DisplayMode::Image:
       renderImageViewMode();
+      break;
     }
 
     renderCursorTexture();
 
     SDL_RenderPresent(m_renderer);
     
-  } // while(!shouldQuit)
+  } // while(!m_shouldQuit)
 
   std::cout << "Exiting render loop..." << "\n";
 }
 
+void 
+Renderer::onEvent(const SDL_Event &event)
+{
+  if (event.type == SDL_MOUSEMOTION) {
+    onMouseMotionEvent(event.motion);
+  } // if SDL_MOUSEMOTION
+
+  else if (event.type == SDL_WINDOWEVENT) {
+    onWindowEvent(event.window);
+  }
+
+  else if (event.type == SDL_KEYDOWN) {
+    onKeyDown(event.key);
+  }
+
+  else if (event.type == SDL_MOUSEBUTTONUP) {
+    onMouseButtonUp(event.button);
+  }
+
+  else if (event.type == SDL_QUIT) {
+    m_shouldQuit = true;
+  } 
+}
+
+
 ////////////////////////////////////////////////////////////////////////////
 void
-Renderer::onButtonUp(const SDL_MouseButtonEvent& event)
+Renderer::onMouseButtonUp(const SDL_MouseButtonEvent& button)
 {
-  if (event.button == SDL_BUTTON_LEFT) {
+  if (button.button == SDL_BUTTON_LEFT) {
     if (m_mode == DisplayMode::Gallery) {
-      int idx{ event.x / (m_winDims.x / NUM_IMAGES_TO_DRAW) };
+      int idx{ button.x / (m_winDims.x / NUM_IMAGES_TO_DRAW) };
       m_imageModeTex = m_images[idx];
       m_mode = DisplayMode::Image;
       std::cout << "Switch to Image View (image#: " << idx << ")\n";
     }
-  } else if (event.button == SDL_BUTTON_RIGHT) {
+  } else if (button.button == SDL_BUTTON_RIGHT) {
     if (m_mode == DisplayMode::Image) {
       m_mode = DisplayMode::Gallery;
       std::cout << "Switch to Gallery View" << "\n";
     }
   }
 }
+
+
+////////////////////////////////////////////////////////////////////////////
+void
+Renderer::onKeyDown(const SDL_KeyboardEvent& key)
+{
+  switch (key.keysym.sym) {
+
+  case SDLK_ESCAPE:
+    m_shouldQuit = true;
+    break;
+
+  case SDLK_f:
+    toggleFullScreen();
+    break;
+  } // switch
+}
+
+
+void
+Renderer::onWindowEvent(const SDL_WindowEvent& window)
+{
+  switch (window.type) {
+  case SDL_WINDOWEVENT_RESIZED:
+    m_winDims.x = window.data1;
+    m_winDims.y = window.data2;
+    m_cursDims.x = static_cast<int>(m_winDims.y * 0.11f);
+    m_cursDims.y = static_cast<int>(m_winDims.y * 0.11f);
+  }
+}
+
+
+void
+Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent& motion)
+{
+  m_cursPos.x = motion.x;
+  m_cursPos.y = motion.y;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -257,7 +276,7 @@ Renderer::renderImageViewMode()
 
   SDL_Rect dest;
   dest.h = m_winDims.y;
-  // TODO: fix width scaling
+  // TODO: width scaling is not quite correct, could be wider than window width.
   dest.w = static_cast<int>(m_winDims.y * aspect_ratio);   // aspect_ratio = w / h --> w = h * aspect_ratio
   dest.x = std::max<int>(m_winDims.x - dest.w, 0) / 2;
   dest.y = 0;
@@ -329,6 +348,31 @@ Renderer::renderImageTextures()
 //  SDL_RenderCopy(m_renderer, tex, nullptr, &dest);
 //}
 
+
+void
+Renderer::toggleFullScreen()
+{
+  if (!m_fullScreen) {
+    int success{ SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN_DESKTOP) };
+    
+    if (success == 0) {
+      m_fullScreen = true;
+    }
+    else {
+      std::cerr << "Switch to fullscreen failed: " << SDL_GetError() << "\n";
+    }
+  }
+  else {
+    int success{ SDL_SetWindowFullscreen(m_window, 0) };
+    
+    if (success == 0) {
+      m_fullScreen = false;
+    }
+    else {
+      std::cerr << "Switch to windowed mode failed: " << SDL_GetError() << "\n";
+    }
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////////
 void
