@@ -26,7 +26,9 @@ namespace
 
 } // namespace
 
-#define ImgIndex(_idx) (_idx)+m_galleryStartIndex % m_images.size()
+#define TEX_FROM_GAL_IDX(_idx) m_images[(m_galleryStartIndex + _idx) % m_images.size()]
+
+#define SCREEN_TO_GAL_IDX(_screen_coords) (_screen_coords) / (m_winDims.x / NUM_IMAGES_TO_DRAW)
 
 ////////////////////////////////////////////////////////////////////////////
 Renderer::Renderer()
@@ -208,8 +210,8 @@ Renderer::onMouseButtonUp(const SDL_MouseButtonEvent& button)
   if (button.button == SDL_BUTTON_LEFT) {
     if (m_mode == DisplayMode::Gallery) {
 
-      int idx{ button.x / (m_winDims.x / NUM_IMAGES_TO_DRAW) };
-      m_imageModeTex = m_images[(m_galleryStartIndex+idx) % m_images.size()];
+      int idx = SCREEN_TO_GAL_IDX(button.x);
+      m_imageModeTex = TEX_FROM_GAL_IDX(idx);
 
       m_mode = DisplayMode::Image;
       std::cout << "Switch to Image View (image#: " << idx << ")\n";
@@ -277,7 +279,7 @@ Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent& motion)
   m_cursPos.x = motion.x;
   m_cursPos.y = motion.y;
 
-  m_cursorImageHoverIndex = motion.x / (m_winDims.x / NUM_IMAGES_TO_DRAW);
+  m_cursorImageHoverIndex = SCREEN_TO_GAL_IDX(motion.x); //motion.x / (m_winDims.x / NUM_IMAGES_TO_DRAW);
   
 }
 
@@ -295,6 +297,7 @@ void
 Renderer::renderImageViewMode() const
 {
   int texWidth, texHeight;
+
   SDL_QueryTexture(m_imageModeTex, nullptr, nullptr, &texWidth, &texHeight);
   float aspect_ratio{ texWidth / static_cast<float>(texHeight) };
 
@@ -335,7 +338,7 @@ Renderer::renderImageTextures() const
 
   int idx{ 0 };
   while (idx < NUM_IMAGES_TO_DRAW) {
-    SDL_Texture *tex{ m_images[(m_galleryStartIndex + idx) % m_images.size()] };
+    SDL_Texture *tex{ TEX_FROM_GAL_IDX(idx) };
     int texWidth, texHeight;
     SDL_QueryTexture(tex, nullptr, nullptr, &texWidth, &texHeight);
     float aspect_ratio{ texWidth / static_cast<float>(texHeight) };
