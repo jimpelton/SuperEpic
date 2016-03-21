@@ -1,6 +1,7 @@
 
 
 #include "renderer.h"
+#include "KinectSensor.h"
 
 #include <SDL_image.h>
 
@@ -26,7 +27,7 @@ namespace
 
 } // namespace
 
-#define TEX_FROM_GAL_IDX(_idx) m_images[(m_galleryStartIndex + _idx) % m_images.size()]
+#define TEX_FROM_GAL_IDX(_idx) m_images[(m_galleryStartIndex + (_idx)) % m_images.size()]
 
 #define SCREEN_TO_GAL_IDX(_screen_coords) (_screen_coords) / (m_winDims.x / NUM_IMAGES_TO_DRAW)
 
@@ -53,6 +54,7 @@ Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
   , m_imageModeTex{ nullptr }
   , m_fullScreen{ false }
   , m_shouldQuit{ false }
+  , m_useKinectForCursorPos{ false }
 {
 }
 
@@ -156,6 +158,11 @@ Renderer::loop()
       onEvent(event);
     }
 
+    if (m_useKinectForCursorPos) {
+      KinectSensor::mapHandToCursor(KinectSensor::handCoords,
+        m_winDims.x, m_winDims.y, reinterpret_cast<int*>(&m_cursPos));
+    }
+    
     SDL_RenderClear(m_renderer);
 
     switch (m_mode) {
@@ -238,12 +245,14 @@ Renderer::onKeyDown(const SDL_KeyboardEvent& key)
     }
     break;
   case SDLK_LEFT:
+    // scroll images left one index, wraps if start index is < 0.
     if (m_mode == DisplayMode::Gallery) {
       int i{ m_galleryStartIndex - 1 };
-      m_galleryStartIndex = i < 0 ? m_images.size() - 1 : i;
+      m_galleryStartIndex = i < 0 ? static_cast<int>(m_images.size()) - 1 : i;
     }
     break;
   case SDLK_RIGHT:
+    // scroll images right one index, wraps if start index > m_images.size()-1
     if (m_mode == DisplayMode::Gallery) {
       m_galleryStartIndex = (m_galleryStartIndex + 1) % m_images.size();
     }
@@ -251,6 +260,8 @@ Renderer::onKeyDown(const SDL_KeyboardEvent& key)
   case SDLK_f:
     toggleFullScreen();
     break;
+  case SDLK_k:
+    m_useKinectForCursorPos = !m_useKinectForCursorPos;
   }
 }
 
@@ -380,6 +391,7 @@ Renderer::renderImageTextures() const
 void
 Renderer::renderImageSelectionRectangle(const SDL_Rect &dest) const
 {
+  // save the clear color so it can be restored after DrawRect()
   Uint8 r, g, b, a;
   SDL_GetRenderDrawColor(m_renderer, &r, &g, &b, &a);
   SDL_SetRenderDrawColor(m_renderer, 255, 0, 0, 0);

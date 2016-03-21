@@ -96,6 +96,7 @@ private:
 
   bool m_fullScreen;                   ///< If in fullscreen or not.
   bool m_shouldQuit;                   ///< If the main loop should exit.
+  bool m_useKinectForCursorPos;        ///< If the kinect sensor should override mouse for cursor position.
 };
 
 
