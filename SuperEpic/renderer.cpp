@@ -168,9 +168,7 @@ void Renderer::onEvent(const SDL_Event &event) {
 
   else if (event.type == SDL_KEYDOWN) {
     onKeyDown(event.key);
-  }
-
-  else if (event.type == SDL_MOUSEBUTTONUP) {
+  } else if (event.type == SDL_MOUSEBUTTONUP) {
     onMouseButtonUp(event.button);
   } else if (event.type == SDL_MOUSEWHEEL) {
     onMouseWheelEvent(event.wheel);
@@ -202,7 +200,7 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
         m_imageScreenRatio = 0;
         findLeastIncrement(m_destWindowRect.w, m_destWindowRect.h, true);
         findLeastIncrement(m_srcImageRect.w, m_srcImageRect.h, false);
-		smoothIncrement();
+        smoothIncrement();
 
         m_mode = DisplayMode::Image;
         std::cout << "Switch to Image View (image#: " << idx << ")\n";
@@ -210,6 +208,7 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
     }
   } else if (button.button == SDL_BUTTON_RIGHT) {
     if (m_mode == DisplayMode::Image) {
+      m_imageScreenRatio = 0;
       m_mode = DisplayMode::Gallery;
       std::cout << "Switch to Gallery View"
                 << "\n";
@@ -505,15 +504,14 @@ void Renderer::findLeastIncrement(int width, int height, bool isWindow) {
 
 void Renderer::smoothIncrement() {
   if (m_windowHeightLeastIncrement > m_imageHeightLeastIncrement) {
-	  m_imageWidthLeastIncrement *=
-		  m_windowHeightLeastIncrement / m_imageHeightLeastIncrement;
-	  m_imageHeightLeastIncrement *=
-		  m_windowHeightLeastIncrement / m_imageHeightLeastIncrement;
-  }
-  else {
-	  m_windowWidthLeastIncrement *=
-		  m_imageHeightLeastIncrement / m_windowHeightLeastIncrement;
-	  m_windowHeightLeastIncrement *=
-		  m_imageHeightLeastIncrement / m_windowHeightLeastIncrement;
+    m_imageWidthLeastIncrement *=
+        m_windowHeightLeastIncrement / m_imageHeightLeastIncrement;
+    m_imageHeightLeastIncrement *=
+        m_windowHeightLeastIncrement / m_imageHeightLeastIncrement;
+  } else {
+    m_windowWidthLeastIncrement *=
+        m_imageHeightLeastIncrement / m_windowHeightLeastIncrement;
+    m_windowHeightLeastIncrement *=
+        m_imageHeightLeastIncrement / m_windowHeightLeastIncrement;
   }
 }
