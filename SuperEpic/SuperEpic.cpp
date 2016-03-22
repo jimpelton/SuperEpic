@@ -1,10 +1,16 @@
 
 #include "renderer.h"
+#include "KinectSensor.h"
+
 #include <SDL.h>
+
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <thread>
+
 #include <cassert>
+
 
 bool 
 parseImagesFile(const std::string &path, std::vector<std::string> *imagePaths)
@@ -49,8 +55,18 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  KinectSensor::handCoords[0] = 0.0f;
+  KinectSensor::handCoords[1] = 0.0f;
+  KinectSensor::handCoords[2] = 0.0f;
+
+  std::thread t{ &KinectSensor::updateHandPosition };
+
   renderer.loadImages(paths);
   renderer.loop();
+
+  KinectSensor::KeepUpdatingHandPos = false;
+  
+  t.join();
 
   return 0;
 }

@@ -5,6 +5,7 @@
 #include "KinectSensor.h"
 
 float * KinectSensor::handCoords{ new float[3] };
+bool KinectSensor::KeepUpdatingHandPos{ true };
 
 KinectSensor::KinectSensor()
 {
@@ -163,7 +164,7 @@ void  KinectSensor::updateHandPosition() {
 
 
 
-	while (1) {
+	while (KeepUpdatingHandPos) {
 		IBody* ppBodies[BODY_COUNT] = { 0 };
 
 		// Get the frames //
@@ -219,3 +220,5 @@ void KinectSensor::mapHandToCursor(float * handPosition, int screenWidth, int sc
 	cursor[1] = cursor[1] < 0 ? 0 : cursor[1];
 	cursor[1] = cursor[1] > screenHeight ? screenHeight : cursor[1];
 }
+
+
