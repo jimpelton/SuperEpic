@@ -1,1 +1,6 @@
-﻿  SuperEpic.vcxproj -> C:\Users\walluser\Documents\Visual Studio 2015\Projects\SuperEpic\x64\Debug\SuperEpic.exe
+﻿  renderer.cpp
+c:\users\marioli\documents\visual studio 2015\projects\superepic\superepic\renderer.cpp(233): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+  Generating Code...
+  Skipping... (no relevant changes detected)
+  SuperEpic.cpp
+  SuperEpic.vcxproj -> C:\Users\MarioLi\Documents\Visual Studio 2015\Projects\SuperEpic\x64\Debug\SuperEpic.exe

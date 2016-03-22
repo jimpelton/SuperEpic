@@ -1,4 +1,3 @@
-
 #include "renderer.h"
 
 #include <SDL.h>
