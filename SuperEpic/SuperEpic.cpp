@@ -1,28 +1,27 @@
-#include "renderer.h"
 #include "KinectSensor.h"
+#include "renderer.h"
 
 #include <SDL.h>
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <iostream>
 #include <stdio.h>
 #include <tchar.h>
-#include <vector>
 #include <thread>
+#include <vector>
+#include <Strsafe.h>
 
 #include <cassert>
 
-
-bool 
-parseImagesFile(const std::string &path, std::vector<std::string> *imagePaths)
-{
+bool parseImagesFile(const std::string &path,
+                     std::vector<std::string> *imagePaths) {
   assert(imagePaths != nullptr);
   std::ifstream imagesFile;
   imagesFile.open(path);
   if (!imagesFile.is_open()) {
     std::cerr << "The images file: " << path << " could not be opened.\n"
-      "Exiting...\n";
+                                                "Exiting...\n";
     return false;
   }
 
@@ -68,9 +67,9 @@ bool parseImagesDirectory(const char *directoryPath,
   }
   do {
     if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-	  std::string filename(ffd.cFileName);
-	  std::cout << path + filename << std::endl;
-	  imagePaths->push_back(path + filename);
+      std::string filename(ffd.cFileName);
+      std::cout << path + filename << std::endl;
+      imagePaths->push_back(path + filename);
     }
   } while (FindNextFile(hFind, &ffd) != 0);
 
@@ -101,13 +100,13 @@ int main(int argc, char *argv[]) {
   KinectSensor::handCoords[1] = 0.0f;
   KinectSensor::handCoords[2] = 0.0f;
 
-  std::thread t{ &KinectSensor::updateHandPosition };
+  std::thread t{&KinectSensor::updateHandPosition};
 
   renderer.loadImages(paths);
   renderer.loop();
 
   KinectSensor::KeepUpdatingHandPos = false;
-  
+
   t.join();
 
   return 0;

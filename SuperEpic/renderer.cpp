@@ -23,7 +23,8 @@ const char *DEFAULT_CURSOR_TEXTURE_PATH{"../res/crosshair.png"};
 
 } // namespace
 
-#define TEX_FROM_GAL_IDX(_idx) m_images[(m_galleryStartIndex + (_idx)) % m_images.size()]
+#define TEX_FROM_GAL_IDX(_idx)                                                 \
+  m_images[(m_galleryStartIndex + (_idx)) % m_images.size()]
 
 #define SCREEN_TO_GAL_IDX(_screen_coords)                                      \
   (_screen_coords) / (m_winDims.x / NUM_IMAGES_TO_DRAW)
@@ -35,38 +36,30 @@ Renderer::Renderer()
 
 ////////////////////////////////////////////////////////////////////////////
 Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
-  : m_window{ nullptr }
-  , m_renderer{ nullptr }
-  , m_winDims{ winWidth, winHeight }
-  , m_winPos{ winX, winY }
-  , m_cursPos{ winWidth/2, winHeight/2 }
-  , m_cursDims{ int(winHeight*CURSOR_SCALE), int(winHeight*CURSOR_SCALE) }
-  , m_cursorSpeed{ DEFAULT_CURSOR_SPEED }
-  , m_mode{ DisplayMode::Gallery }
-  , m_galleryStartIndex{ 0 }
-  , m_images{ }
-  , m_cursTex{ nullptr }
-  , m_imageModeTex{ nullptr }
-  , m_fullScreen{ false }, m_clickCount{0}, m_selected{false}, m_srcImageRect{0, 0, 0, 0},
+    : m_window{nullptr}, m_renderer{nullptr}, m_winDims{winWidth, winHeight},
+      m_winPos{winX, winY}, m_cursPos{winWidth / 2, winHeight / 2},
+      m_cursDims{int(winHeight * CURSOR_SCALE), int(winHeight * CURSOR_SCALE)},
+      m_cursorSpeed{DEFAULT_CURSOR_SPEED}, m_mode{DisplayMode::Gallery},
+      m_galleryStartIndex{0}, m_images{}, m_cursTex{nullptr},
+      m_imageModeTex{nullptr}, m_fullScreen{false}, m_clickCount{0},
+      m_selected{false}, m_srcImageRect{0, 0, 0, 0},
       m_destWindowRect{0, 0, 0, 0}, m_imageScreenRatio{0},
       m_windowWidthLeastIncrement{0}, m_windowHeightLeastIncrement{0},
-      m_imageHeightLeastIncrement{0}, m_imageWidthLeastIncrement{0}
-  , m_shouldQuit{ false }
-{
-}
+      m_imageHeightLeastIncrement{0}, m_imageWidthLeastIncrement{0},
+      m_shouldQuit{false} {}
 
 ////////////////////////////////////////////////////////////////////////////
 Renderer::~Renderer() {
-  for (auto &tex : m_images)  
+  for (auto &tex : m_images)
     SDL_DestroyTexture(tex);
 
-  if (m_cursTex != nullptr)     
+  if (m_cursTex != nullptr)
     SDL_DestroyTexture(m_cursTex);
 
-  if (m_renderer != nullptr) 
+  if (m_renderer != nullptr)
     SDL_DestroyRenderer(m_renderer);
-  
-  if (m_window != nullptr) 
+
+  if (m_window != nullptr)
     SDL_DestroyWindow(m_window);
 
   SDL_Quit();
@@ -96,7 +89,7 @@ int Renderer::init() {
                             m_winDims.x,      // width, in pixels
                             m_winDims.y,      // height, in pixels
                             SDL_WINDOW_OPENGL // flags
-    );
+                            );
 
   if (window == nullptr) {
     std::cerr << "Coult not create window: " << SDL_GetError() << "\n";
@@ -145,10 +138,11 @@ void Renderer::loop() {
     }
 
     if (m_useKinectForCursorPos) {
-      KinectSensor::mapHandToCursor(KinectSensor::handCoords,
-        m_winDims.x, m_winDims.y, reinterpret_cast<int*>(&m_cursPos));
+      KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
+                                    m_winDims.y,
+                                    reinterpret_cast<int *>(&m_cursPos));
     }
-    
+
     SDL_RenderClear(m_renderer);
 
     switch (m_mode) {
@@ -163,7 +157,7 @@ void Renderer::loop() {
     renderCursorTexture();
 
     SDL_RenderPresent(m_renderer);
-    
+
   } // while(!m_shouldQuit)
 
   std::cout << "Exiting render loop..."
@@ -188,7 +182,7 @@ void Renderer::onEvent(const SDL_Event &event) {
     onMouseWheelEvent(event.wheel);
   } else if (event.type == SDL_QUIT) {
     m_shouldQuit = true;
-  } 
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -204,12 +198,13 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
         m_clickCount = 0;
         m_selected = false;
 
-      int idx = SCREEN_TO_GAL_IDX(button.x);
-      m_imageModeTex = TEX_FROM_GAL_IDX(idx);
+        int idx = SCREEN_TO_GAL_IDX(button.x);
+        m_imageModeTex = TEX_FROM_GAL_IDX(idx);
 
         SDL_QueryTexture(m_imageModeTex, nullptr, nullptr, &m_srcImageRect.w,
                          &m_srcImageRect.h);
-		m_srcImageRect.x = m_srcImageRect.y = m_destWindowRect.x = m_destWindowRect.y = 0;
+        m_srcImageRect.x = m_srcImageRect.y = m_destWindowRect.x =
+            m_destWindowRect.y = 0;
         m_destWindowRect.h = m_winDims.y;
         m_destWindowRect.w = m_winDims.x;
         m_imageScreenRatio = 0;
@@ -217,9 +212,9 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
         findLeastIncrement(m_srcImageRect.w, m_srcImageRect.h, false);
         smoothIncrement();
 
-      m_mode = DisplayMode::Image;
-      std::cout << "Switch to Image View (image#: " << idx << ")\n";
-    }
+        m_mode = DisplayMode::Image;
+        std::cout << "Switch to Image View (image#: " << idx << ")\n";
+      }
     }
   } else if (button.button == SDL_BUTTON_RIGHT) {
     if (m_mode == DisplayMode::Image) {
@@ -243,7 +238,7 @@ void Renderer::onKeyDown(const SDL_KeyboardEvent &key) {
   case SDLK_LEFT:
     // scroll images left one index, wraps if start index is < 0.
     if (m_mode == DisplayMode::Gallery) {
-      int i{ m_galleryStartIndex - 1 };
+      int i{m_galleryStartIndex - 1};
       m_galleryStartIndex = i < 0 ? static_cast<int>(m_images.size()) - 1 : i;
     }
     break;
@@ -284,7 +279,7 @@ void Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent &motion) {
   if (m_previousImageHoverIndex != m_cursorImageHoverIndex) {
     m_clickCount = 0;
     m_selected = false;
-}
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -331,7 +326,7 @@ void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderGalleryMode() const { renderImageTextures(); }
-  
+
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderImageViewMode() const {
   SDL_RenderCopy(m_renderer, m_imageModeTex, &m_srcImageRect,
@@ -353,7 +348,7 @@ void Renderer::renderCursorTexture() const {
 void Renderer::renderImageTextures() const {
   const int imgWidth{m_winDims.x / NUM_IMAGES_TO_DRAW};
   const int halfWinY{m_winDims.y / 2};
-  
+
   int xpos{0};
 
   int idx{0};
@@ -390,7 +385,7 @@ void Renderer::renderImageTextures() const {
 //  assert(tex != nullptr);
 //
 //  SDL_Rect dest;
-//  dest.x = x; 
+//  dest.x = x;
 //  dest.y = y;
 //  dest.w = w;
 //  dest.h = h;
@@ -398,9 +393,7 @@ void Renderer::renderImageTextures() const {
 //}
 
 ////////////////////////////////////////////////////////////////////////////
-void
-Renderer::renderImageSelectionRectangle(const SDL_Rect &dest) const
-{
+void Renderer::renderImageSelectionRectangle(const SDL_Rect &dest) const {
   // save the clear color so it can be restored after DrawRect()
   Uint8 r, g, b, a;
   SDL_GetRenderDrawColor(m_renderer, &r, &g, &b, &a);
@@ -414,7 +407,7 @@ void Renderer::toggleFullScreen() {
   if (!m_fullScreen) {
     int success{
         SDL_SetWindowFullscreen(m_window, SDL_WINDOW_FULLSCREEN_DESKTOP)};
-    
+
     if (success == 0) {
       m_fullScreen = true;
     } else {
@@ -422,7 +415,7 @@ void Renderer::toggleFullScreen() {
     }
   } else {
     int success{SDL_SetWindowFullscreen(m_window, 0)};
-    
+
     if (success == 0) {
       m_fullScreen = false;
     } else {
@@ -434,7 +427,7 @@ void Renderer::toggleFullScreen() {
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::loadSingleTexture(const std::string &path) {
   SDL_Texture *tex{IMG_LoadTexture(m_renderer, path.c_str())};
-  
+
   if (tex == nullptr) {
     std::cerr << "Could not load image texture: " << SDL_GetError()
               << std::endl;
