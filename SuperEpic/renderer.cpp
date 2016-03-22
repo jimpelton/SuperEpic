@@ -208,7 +208,6 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
     }
   } else if (button.button == SDL_BUTTON_RIGHT) {
     if (m_mode == DisplayMode::Image) {
-      m_imageScreenRatio = 0;
       m_mode = DisplayMode::Gallery;
       std::cout << "Switch to Gallery View"
                 << "\n";
@@ -282,6 +281,11 @@ void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
         m_destWindowRect.w -= m_windowWidthLeastIncrement * 2;
         m_destWindowRect.y += m_windowHeightLeastIncrement;
         m_destWindowRect.x += m_windowWidthLeastIncrement;
+        if (m_destWindowRect.w <= (m_winDims.x / 5)) {
+          m_mode = DisplayMode::Gallery;
+          std::cout << "Switch to Gallery View"
+                    << "\n";
+        }
       } else {
         m_srcImageRect.h += m_imageHeightLeastIncrement * 2;
         m_srcImageRect.w += m_imageWidthLeastIncrement * 2;
