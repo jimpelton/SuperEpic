@@ -195,6 +195,7 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
 
         SDL_QueryTexture(m_imageModeTex, nullptr, nullptr, &m_srcImageRect.w,
                          &m_srcImageRect.h);
+		m_srcImageRect.x = m_srcImageRect.y = m_destWindowRect.x = m_destWindowRect.y = 0;
         m_destWindowRect.h = m_winDims.y;
         m_destWindowRect.w = m_winDims.x;
         m_imageScreenRatio = 0;
