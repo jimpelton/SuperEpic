@@ -1,23 +1,28 @@
 #include "renderer.h"
+#include "KinectSensor.h"
 
 #include <SDL.h>
-#include <Strsafe.h>
-#include <Windows.h>
-#include <cassert>
+
+#include <iostream>
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
 #include <tchar.h>
 #include <vector>
+#include <thread>
 
-bool parseImagesFile(const std::string &path,
-                     std::vector<std::string> *imagePaths) {
+#include <cassert>
+
+
+bool 
+parseImagesFile(const std::string &path, std::vector<std::string> *imagePaths)
+{
   assert(imagePaths != nullptr);
   std::ifstream imagesFile;
   imagesFile.open(path);
   if (!imagesFile.is_open()) {
     std::cerr << "The images file: " << path << " could not be opened.\n"
-                                                "Exiting...\n";
+      "Exiting...\n";
     return false;
   }
 
@@ -92,8 +97,18 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  KinectSensor::handCoords[0] = 0.0f;
+  KinectSensor::handCoords[1] = 0.0f;
+  KinectSensor::handCoords[2] = 0.0f;
+
+  std::thread t{ &KinectSensor::updateHandPosition };
+
   renderer.loadImages(paths);
   renderer.loop();
+
+  KinectSensor::KeepUpdatingHandPos = false;
+  
+  t.join();
 
   return 0;
 }

@@ -11,7 +11,7 @@ public:
   enum class DisplayMode { Gallery, Image };
 
   ////////////////////////////////////////////////////////////////////////////
-  /// \brief Create a renderer with 640x480 width and height,
+  /// \brief Create a renderer with 640x480 width and height, 
   ///        and unspecified position.
   ////////////////////////////////////////////////////////////////////////////
   Renderer();
@@ -31,7 +31,7 @@ public:
   int init();
 
   ////////////////////////////////////////////////////////////////////////////
-  /// \brief Executes the main rendering loop which does not return until the
+  /// \brief Executes the main rendering loop which does not return until the 
   ///        SDL window is closed.
   ///
   /// \note  This needs to be called from the same thread that called init().
@@ -74,7 +74,7 @@ private:
 
   SDL_Point m_winDims; ///< The current window dimensions
   SDL_Point m_winPos;  ///< The current window position
-
+  
   SDL_Point m_cursPos;         ///< The current position of cursor/mouse/hand
   SDL_Point m_cursDims;        ///< The current cursor dimensions
   float m_cursorSpeed;         ///< Scale the speed of the cursor.
@@ -90,22 +90,26 @@ private:
       m_images;                ///< Textures currently loaded into memory.
   SDL_Texture *m_cursTex;      ///< The texture for the cursor.
   SDL_Texture *m_imageModeTex; ///< The image to display in image view mode.
-  ///< Note: m_imageModeTex != m_images[m_cursorImageHoverIndex], fyi!
+                                       ///< Note: m_imageModeTex != m_images[m_cursorImageHoverIndex], fyi!
+
+  bool m_fullScreen;                   ///< If in fullscreen or not.
+  bool m_shouldQuit;                   ///< If the main loop should exit.
+  bool m_useKinectForCursorPos;        ///< If the kinect sensor should override mouse for cursor position.
 
   bool m_fullScreen; ///< If in fullscreen or not.
   bool m_shouldQuit; ///< If the main loop should exit.
 
   int m_previousImageHoverIndex; ///< The image index that the cursor was
-                                 /// hovering over.
+								 /// hovering over.
   int m_clickCount;              ///< Number of clicks clicked.
   bool m_selected;               ///< If user choose a candidate image.
 
   SDL_Rect m_srcImageRect;   ///< Source image rectangle.
   SDL_Rect m_destWindowRect; ///< Destination window rectangle.
   int m_imageScreenRatio;    ///< Image screen ratio,
-                             ///< 0 when image = screen
-                             ///< >0 when image > screen (zoomed in)
-                             ///< <0 when image < screen (zoomed out)
+							 ///< 0 when image = screen
+							 ///< >0 when image > screen (zoomed in)
+							 ///< <0 when image < screen (zoomed out)
 
   int m_windowHeightLeastIncrement; ///< Window height min increment
   int m_windowWidthLeastIncrement;  ///< Window width min increment
