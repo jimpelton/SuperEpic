@@ -8,7 +8,7 @@
 
 class Renderer {
 public:
-  enum class DisplayMode { Gallery, Image };
+  enum class DisplayMode { Gallery, Image, FromGalleryToImage };
 
   ////////////////////////////////////////////////////////////////////////////
   /// \brief Create a renderer with 640x480 width and height,
@@ -51,6 +51,8 @@ private:
   void onMouseWheelEvent(const SDL_MouseWheelEvent &event);
   /// \brief Render 5 images in gallery mode.
   void renderGalleryMode() const;
+  /// \brief Render transaction from gallery mode to image mode
+  void renderTransactionMode();
   /// \brief Render the image pointed to by m_imageModeTex;
   void renderImageViewMode() const;
   /// \brief Render the texture for the cursor

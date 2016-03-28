@@ -149,6 +149,9 @@ void Renderer::loop() {
     case DisplayMode::Gallery:
       renderGalleryMode();
       break;
+    case DisplayMode::FromGalleryToImage:
+      renderTransactionMode();
+      break;
     case DisplayMode::Image:
       renderImageViewMode();
       break;
@@ -203,16 +206,17 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
 
         SDL_QueryTexture(m_imageModeTex, nullptr, nullptr, &m_srcImageRect.w,
                          &m_srcImageRect.h);
-        m_srcImageRect.x = m_srcImageRect.y = m_destWindowRect.x =
-            m_destWindowRect.y = 0;
-        m_destWindowRect.h = m_winDims.y;
-        m_destWindowRect.w = m_winDims.x;
+        m_srcImageRect.x = m_srcImageRect.y = 0;
+        m_destWindowRect.x = (m_winDims.x / 5) * 2;
+        m_destWindowRect.y = (m_winDims.y / 5) * 2;
+        m_destWindowRect.h = m_winDims.y / 5;
+        m_destWindowRect.w = m_winDims.x / 5;
         m_imageScreenRatio = 0;
         findLeastIncrement(m_destWindowRect.w, m_destWindowRect.h, true);
         findLeastIncrement(m_srcImageRect.w, m_srcImageRect.h, false);
         smoothIncrement();
 
-        m_mode = DisplayMode::Image;
+        m_mode = DisplayMode::FromGalleryToImage;
         std::cout << "Switch to Image View (image#: " << idx << ")\n";
       }
     }
@@ -326,6 +330,26 @@ void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderGalleryMode() const { renderImageTextures(); }
+
+////////////////////////////////////////////////////////////////////////////
+void Renderer::renderTransactionMode() {
+  if (m_destWindowRect.x >= 0 + m_windowWidthLeastIncrement &&
+      m_destWindowRect.y >= 0 + m_windowHeightLeastIncrement &&
+      m_destWindowRect.w <= m_winDims.x - m_windowWidthLeastIncrement &&
+      m_destWindowRect.h <= m_winDims.y - m_windowHeightLeastIncrement) {
+    m_destWindowRect.x -= m_windowWidthLeastIncrement;
+    m_destWindowRect.y -= m_windowHeightLeastIncrement;
+    m_destWindowRect.w += m_windowWidthLeastIncrement;
+    m_destWindowRect.h += m_windowHeightLeastIncrement;
+  } else {
+    m_mode = DisplayMode::Image;
+    m_destWindowRect.x = m_destWindowRect.y = 0;
+    m_destWindowRect.w = m_winDims.x;
+    m_destWindowRect.h = m_winDims.y;
+  }
+  SDL_RenderCopy(m_renderer, m_imageModeTex, &m_srcImageRect,
+                 &m_destWindowRect);
+}
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderImageViewMode() const {
