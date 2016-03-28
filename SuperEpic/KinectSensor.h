@@ -18,7 +18,7 @@
 
 class KinectSensor
 {
-	
+
 private:
 	IKinectSensor * pKinectSensor;
 
@@ -34,8 +34,7 @@ private:
 	void error(std::string e, HRESULT hr);
 
 public:
-	
-  static bool KeepUpdatingHandPos;
+
 
 	KinectSensor();
 	~KinectSensor();
@@ -46,7 +45,7 @@ public:
 	IBodyFrameReader * getBodyFrameReader();
 	ICoordinateMapper * getCoordinateMapper();
 
-	
+
 	/* Returns the next frame from the depth reader */
 	IDepthFrame * getNextDepthFrame();
 
@@ -59,12 +58,13 @@ public:
 	/* Returns the next frame from the depth reader */
 	IBodyFrame * getNextBodyFrame();
 
-	
+
 	/* Updates the hand position variable. (Put this into a thread)*/
 	static void updateHandPosition();
 	static void mapHandToCursor(float * handPosition, int screenWidth, int screenHeight, int * cursor);
 	static float* handCoords;
-																	/* Releases any Kinect interface */
+	static bool KeepUpdatingHandPos;
+	/* Releases any Kinect interface */
 	template<class Interface>
 	void SafeRelease(Interface *& pInterface);//TODO
 
