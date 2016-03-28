@@ -335,12 +335,12 @@ void Renderer::renderGalleryMode() const { renderImageTextures(); }
 void Renderer::renderTransactionMode() {
   if (m_destWindowRect.x >= 0 + m_windowWidthLeastIncrement &&
       m_destWindowRect.y >= 0 + m_windowHeightLeastIncrement &&
-      m_destWindowRect.w <= m_winDims.x - m_windowWidthLeastIncrement &&
-      m_destWindowRect.h <= m_winDims.y - m_windowHeightLeastIncrement) {
+      m_destWindowRect.w <= m_winDims.x - m_windowWidthLeastIncrement * 2 &&
+      m_destWindowRect.h <= m_winDims.y - m_windowHeightLeastIncrement * 2) {
     m_destWindowRect.x -= m_windowWidthLeastIncrement;
     m_destWindowRect.y -= m_windowHeightLeastIncrement;
-    m_destWindowRect.w += m_windowWidthLeastIncrement;
-    m_destWindowRect.h += m_windowHeightLeastIncrement;
+    m_destWindowRect.w += m_windowWidthLeastIncrement * 2;
+    m_destWindowRect.h += m_windowHeightLeastIncrement * 2;
   } else {
     m_mode = DisplayMode::Image;
     m_destWindowRect.x = m_destWindowRect.y = 0;
