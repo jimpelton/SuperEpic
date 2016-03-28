@@ -29,12 +29,13 @@ private:
 
 	ICoordinateMapper * m_pCoordinateMapper;
 
-	
+
 
 	void error(std::string e, HRESULT hr);
 
 public:
 	
+  static bool KeepUpdatingHandPos;
 
 	KinectSensor();
 	~KinectSensor();
