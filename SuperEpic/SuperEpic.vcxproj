@@ -155,13 +155,18 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="image.cpp" />
     <ClCompile Include="KinectSensor.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="SuperEpic.cpp" />
+    <ClCompile Include="ZoomImageAnimation.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cursor.h" />
+    <ClInclude Include="image.h" />
     <ClInclude Include="KinectSensor.h" />
     <ClInclude Include="renderer.h" />
+    <ClInclude Include="ZoomImageAnimation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
