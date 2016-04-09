@@ -361,7 +361,7 @@ Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent& event)
     if (event.direction == SDL_MOUSEWHEEL_FLIPPED) {
       scrollDeg *= -1;
     }
-    m_imageModeImage->zoom(scrollDeg);
+    m_imageModeImage->scale(1 + (scrollDeg * 0.5));
 //    if (scrollDeg < 0) { // scroll backward - zoom out
 //      if (m_imageScreenRatio <= 0) {
 //        m_destWindowRect.h -= m_windowHeightLeastIncrement * 2;
@@ -466,7 +466,7 @@ Renderer::renderImageTextures()
     Image * img = IMG_FROM_GAL_IDX(idx);
     
     float aspect_ratio{ 
-      img->getWidth() / static_cast<float>(img->getHeight()) };
+      img->getTexWidth() / static_cast<float>(img->getTexHeight()) };
 
     SDL_Rect dest;
     dest.w = imgWidth;

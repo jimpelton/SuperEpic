@@ -71,10 +71,18 @@ Image::scale(float s)
   int ww, wh;
   SDL_GetWindowSize(sdl_window(), &ww, &wh);
 
-  m_bbox.w = std::min<int>(ww,
-                           static_cast<int>(m_bbox.w * s));
-  m_bbox.h = std::min<int>(wh,
-                           static_cast<int>(m_bbox.h * s));
+//  m_bbox.w = std::min<int>(ww,
+//                           static_cast<int>(m_bbox.w * s));
+//  m_bbox.h = std::min<int>(wh,
+//                           static_cast<int>(m_bbox.h * s));
+
+  float aspect_ratio{ std::min<float>(ww / float(m_texDims.x),
+                                      wh / float(m_texDims.y)) };
+
+  m_bbox.w = static_cast<int>(s * m_bbox.w * aspect_ratio);
+  m_bbox.h = static_cast<int>(s * m_bbox.h * aspect_ratio);
+  m_bbox.x = (ww - m_bbox.w) / 2;
+  m_bbox.y = (wh - m_bbox.h) / 2;
 }
 
 
@@ -89,8 +97,8 @@ Image::maximize()
   int ww, wh;
   SDL_GetWindowSize(sdl_window(), &ww, &wh);
 
-  float aspect_ratio{ std::min<float>(ww / float(texWidth), 
-                                      wh / float(texHeight) ) };
+  float aspect_ratio{ std::min<float>(ww / float(m_texDims.x), 
+                                      wh / float(m_texDims.y) ) };
   
   m_bbox.w = static_cast<int>(texWidth * aspect_ratio);
   m_bbox.h = static_cast<int>(texHeight * aspect_ratio);
@@ -207,11 +215,14 @@ Image::setPos(int x, int y)
   m_bbox.y = y;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
 SDL_Point
 Image::getPos() const
 {
   return{ m_bbox.x, m_bbox.y };
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 SDL_Point
@@ -229,11 +240,14 @@ Image::getBounds() const
   return m_bbox;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
 void
 Image::setBounds(const SDL_Rect& r)
 {
   m_bbox = r;
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 SDL_Texture*
@@ -256,4 +270,20 @@ int
 Image::getHeight() const
 {
   return m_bbox.h;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+int 
+Image::getTexWidth() const
+{
+  return m_texDims.x;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+int 
+Image::getTexHeight() const
+{
+  return m_texDims.y;
 }

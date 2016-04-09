@@ -84,6 +84,11 @@ public:
   /// \brief
   int getHeight() const;
 
+  /// \brief
+  int getTexWidth() const;
+
+  /// \brief
+  int getTexHeight() const;
 
 
 private:
