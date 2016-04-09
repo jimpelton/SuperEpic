@@ -1,13 +1,19 @@
 #include "image.h"
 #include <SDL_image.h>
 #include <algorithm>
+#include <iostream>
+#include <cmath>
+
+namespace {
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////
 Image*
 Image::load(const std::string &file)
 {
-  SDL_Texture* tex{ IMG_LoadTexture(sdl_renderer(), file.c_str()) };
+  SDL_Surface* surf{ IMG_Load(file.c_str()) };
+  SDL_Texture* tex{ SDL_CreateTextureFromSurface(sdl_renderer(), surf) };
   if (tex == nullptr)
     return nullptr;
 
@@ -18,6 +24,10 @@ Image::load(const std::string &file)
   image->m_bbox.y = 0;
   image->m_texture = tex;
 
+  image->m_src = image->m_bbox;
+  image->m_texDims.x = image->m_bbox.w;
+  image->m_texDims.y = image->m_bbox.h;
+
   return image;
 }
 
@@ -25,6 +35,9 @@ Image::load(const std::string &file)
 Image::Image()
   : m_texture{ nullptr }
   , m_bbox{ 0, 0, 0, 0 }
+  , m_src{ 0, 0, 0, 0 }
+  , m_texDims{ 0, 0 }
+  , m_zoomFact{ 1 }
 { }
 
 
@@ -39,24 +52,29 @@ Image::~Image()
 void 
 Image::draw()
 {
-  SDL_RenderCopy(sdl_renderer(), m_texture, nullptr, &m_bbox);
+  SDL_RenderCopy(sdl_renderer(), m_texture, &m_src, &m_bbox);
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////
-void
-Image::scale(const SDL_Point &p)
-{
-  scale(p.x, p.y);
-}
+//void
+//Image::scale(const SDL_Point &p)
+//{
+//  scale(p.x, p.y);
+//}
 
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-Image::scale(float dw, float dh)
+Image::scale(float s)
 {
-  m_bbox.w = static_cast<int>(m_bbox.w * dw);
-  m_bbox.h = static_cast<int>(m_bbox.h * dh);
+  int ww, wh;
+  SDL_GetWindowSize(sdl_window(), &ww, &wh);
+
+  m_bbox.w = std::min<int>(ww,
+                           static_cast<int>(m_bbox.w * s));
+  m_bbox.h = std::min<int>(wh,
+                           static_cast<int>(m_bbox.h * s));
 }
 
 
@@ -72,13 +90,78 @@ Image::maximize()
   SDL_GetWindowSize(sdl_window(), &ww, &wh);
 
   float aspect_ratio{ std::min<float>(ww / float(texWidth), 
-                                      wh/float(texHeight) ) };
+                                      wh / float(texHeight) ) };
   
-  m_bbox.w = texWidth * aspect_ratio;
-  m_bbox.h = texHeight * aspect_ratio;
+  m_bbox.w = static_cast<int>(texWidth * aspect_ratio);
+  m_bbox.h = static_cast<int>(texHeight * aspect_ratio);
   m_bbox.x = (ww - m_bbox.w) / 2;
   m_bbox.y = (wh - m_bbox.h) / 2;
 
+  // render entire texture
+  m_src.x = 0;
+  m_src.y = 0;
+  m_src.w = texWidth;
+  m_src.h = texHeight;
+
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+void
+Image::zoom(float f)
+{
+  m_zoomFact += f;
+  //TODO: adjust cropping rectangle (m_src)
+  int ww, wh;
+  SDL_GetWindowSize(sdl_window(), &ww, &wh);
+
+  float aspect_ratio{ std::min<float>(ww / float(m_texDims.x),
+                                      wh / float(m_texDims.y) )};
+
+  m_src.w += static_cast<int>(f * aspect_ratio * 5.0f);
+  m_src.h += static_cast<int>(f * aspect_ratio * 5.0f);
+
+  m_src.x = (m_texDims.x - m_src.w) / 2;
+  m_src.y = (m_texDims.y - m_src.h) / 2;
+
+  if (m_src.w >= m_texDims.x){
+    m_src.w = m_texDims.x;
+    m_src.x = 0;
+    m_bbox.w += static_cast<int>(f * aspect_ratio * 5.0f);
+    m_bbox.x = (ww - m_bbox.w) / 2;
+  }
+
+  if (m_src.h >= m_texDims.y) {
+    m_src.h = m_texDims.y;
+    m_src.y = 0;
+    m_bbox.h += static_cast<int>(f * aspect_ratio * 5.0f);
+    m_bbox.y = (wh - m_bbox.h) / 2;
+  }
+
+  std::cout << "m_bbox: " << m_bbox.x << " " << m_bbox.y << " "
+            << m_bbox.w << " " << m_bbox.h << std::endl;
+  std::cout << "m_src: " << m_src.x << " " << m_src.y << " "
+            << m_src.w << " " << m_src.h << std::endl;
+
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+void
+Image::panBy(const SDL_Point& delta)
+{
+  panBy(delta.x, delta.y);
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+void
+Image::panBy(int dx, int dy)
+{
+  if (m_zoomFact <= 0) {
+    return;
+  }
+  //TODO: adjust location of src bounding rectangle
 }
 
 

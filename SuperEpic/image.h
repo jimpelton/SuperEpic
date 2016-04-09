@@ -34,12 +34,19 @@ public:
 
   /// \brief Translate the image to given destination.
   /// \param p Where the upper-left corner of this Image should be.
-  void scale(const SDL_Point &p);
-  void scale(float dx, float dy);
+  //void scale(const SDL_Point &p);
+  void scale(float s);
   
 
   /// \brief Make this image as large as possible for the sdl_window size.
   void maximize();
+
+  /// \brief Zoom by a factor of provided value.
+  void zoom(float);
+
+  /// \brief Pan the source rectangle around.
+  void panBy(const SDL_Point &delta);
+  void panBy(int dx, int dy);
 
 
   /// \brief Translate the image by the provided delta.
@@ -84,7 +91,12 @@ private:
 
   SDL_Texture *m_texture;
   SDL_Rect m_bbox; ///< The bounding box for this image
-  SDL_Rect m_dest;
+  SDL_Rect m_src;  ///< The cropping rectangle for this image.
+  SDL_Point m_texDims;
+
+  float m_zoomFact;
+
+
 };
 
 #endif  // ! epic_image_h__

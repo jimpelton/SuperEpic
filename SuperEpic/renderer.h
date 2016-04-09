@@ -2,12 +2,12 @@
 #define epic_renderer_h__
 
 #include "image.h"
+#include "cursor.h"
 
 #include <SDL.h>
 
 #include <string>
 #include <vector>
-#include "cursor.h"
 
 
 class Renderer {
@@ -77,24 +77,20 @@ private:
   SDL_Point m_winDims; ///< The current sdl_window dimensions
   SDL_Point m_winPos;  ///< The current sdl_window position
 
-  //SDL_Point m_cursPos;         ///< The current position of cursor/mouse/hand
-  //SDL_Point m_cursDims;        ///< The current cursor dimensions
-  float m_cursorSpeed;         ///< Scale the speed of the cursor.
-  Cursor * m_cursor;
-  int m_currentImageHoverIndex; ///< The image index that the cursor is hovering
-                               /// over.
+  float m_cursorSpeed;           ///< Scale the speed of the cursor.
+  Cursor *m_cursor;
+  int m_currentImageHoverIndex;  ///< The image index that the cursor is hovering
+                                 /// over.
   int m_previousImageHoverIndex; ///< The image index that the cursor was
                                  /// hovering over.
 
-  DisplayMode m_mode; ///< Gallery view, or image view
-  // RenderStrategy *m_rendStrat  ///< The method to render current DisplayMode
-  // (gallery or image view)
-  int m_galleryStartIndex; ///< The index within the gallery to start at.
+  DisplayMode m_mode;             ///< Gallery view, or image view
+  // RenderStrategy *m_rendStrat  ///< The method to render current DisplayMode (gallery or image view)
+  int m_galleryStartIndex;        ///< The index within the gallery to start at.
 
-  std::vector<Image*> m_images;   ///< Textures currently loaded into memory.
-  //Image *m_cursImg;               ///< The texture for the cursor.
+  std::vector<Image*> m_images;     ///< Textures currently loaded into memory.
   Image *m_imageModeImage;          ///< The image to display in image view mode.
-  ///< Note: m_imageModeImage != m_images[m_currentImageHoverIndex], fyi!
+                                    ///< Note: m_imageModeImage != m_images[m_currentImageHoverIndex], fyi!
 
   bool m_fullScreen;            ///< If in fullscreen or not.
   bool m_shouldQuit;            ///< If the main loop should exit.
@@ -105,21 +101,21 @@ private:
   int m_clickCount;              ///< Number of clicks clicked.
   bool m_selected;               ///< If user choose a candidate image.
 
-  SDL_Rect m_srcImageRect;   ///< Source image rectangle.
-  SDL_Rect m_destWindowRect; ///< Destination sdl_window rectangle.
-  int m_imageScreenRatio;    ///< Image screen ratio,
+//  SDL_Rect m_srcImageRect;   ///< Source image rectangle.
+//  SDL_Rect m_destWindowRect; ///< Destination sdl_window rectangle.
+//  int m_imageScreenRatio;    ///< Image screen ratio,
                              ///< 0 when image = screen
                              ///< >0 when image > screen (zoomed in)
                              ///< <0 when image < screen (zoomed out)
 
-  int m_windowHeightLeastIncrement; ///< Window height min increment
-  int m_windowWidthLeastIncrement;  ///< Window width min increment
-  int m_imageHeightLeastIncrement;  ///< Image height min increment
-  int m_imageWidthLeastIncrement;   ///< Image width min increment
+//  int m_windowHeightLeastIncrement; ///< Window height min increment
+//  int m_windowWidthLeastIncrement;  ///< Window width min increment
+//  int m_imageHeightLeastIncrement;  ///< Image height min increment
+//  int m_imageWidthLeastIncrement;   ///< Image width min increment
 
-  void findLeastIncrement(int width, int height,
-                          bool isWindow); ///< Find least increment
-  void smoothIncrement();
+//  void findLeastIncrement(int width, int height,
+//                          bool isWindow); ///< Find least increment
+//  void smoothIncrement();
 };
 
 #endif // ! epic_renderer_h__
