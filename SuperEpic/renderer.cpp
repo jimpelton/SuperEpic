@@ -312,12 +312,12 @@ Renderer::onKeyDown(const SDL_KeyboardEvent& key)
     break;
   case SDLK_z:
     if (m_mode == DisplayMode::Image) {
-      m_imageModeImage->zoom(-1);
+      m_imageModeImage->scale(-1);
     }
     break;
   case SDLK_a:
     if (m_mode == DisplayMode::Image) {
-      m_imageModeImage->zoom(1);
+      m_imageModeImage->scale(1);
     }
 
   }

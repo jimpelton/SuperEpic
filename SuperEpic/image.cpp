@@ -76,8 +76,8 @@ Image::scale(float s)
 //  m_bbox.h = std::min<int>(wh,
 //                           static_cast<int>(m_bbox.h * s));
 
-  float aspect_ratio{ std::min<float>(ww / float(m_texDims.x),
-                                      wh / float(m_texDims.y)) };
+  float aspect_ratio{ std::min<float>(m_bbox.w / float(m_texDims.x),
+                                      m_bbox.y / float(m_texDims.y)) };
 
   m_bbox.w = static_cast<int>(s * m_bbox.w * aspect_ratio);
   m_bbox.h = static_cast<int>(s * m_bbox.h * aspect_ratio);
@@ -91,25 +91,22 @@ void
 Image::maximize()
 {
 
-  int texWidth, texHeight;
-  SDL_QueryTexture(m_texture, nullptr, nullptr, &texWidth, &texHeight);
-  
   int ww, wh;
   SDL_GetWindowSize(sdl_window(), &ww, &wh);
 
   float aspect_ratio{ std::min<float>(ww / float(m_texDims.x), 
                                       wh / float(m_texDims.y) ) };
   
-  m_bbox.w = static_cast<int>(texWidth * aspect_ratio);
-  m_bbox.h = static_cast<int>(texHeight * aspect_ratio);
+  m_bbox.w = static_cast<int>(m_texDims.x * aspect_ratio);
+  m_bbox.h = static_cast<int>(m_texDims.y * aspect_ratio);
   m_bbox.x = (ww - m_bbox.w) / 2;
   m_bbox.y = (wh - m_bbox.h) / 2;
 
   // render entire texture
   m_src.x = 0;
   m_src.y = 0;
-  m_src.w = texWidth;
-  m_src.h = texHeight;
+  m_src.w = m_texDims.x;
+  m_src.h = m_texDims.y;
 
 }
 
