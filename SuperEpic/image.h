@@ -38,13 +38,13 @@ public:
   void scale(float s);
   
 
-  /// \brief Make this image as large as possible for the sdl_window size.
+  /// \brief Upscale this image as large as possible for the SDL_window size.
   void maximize();
 
   /// \brief Zoom by a factor of provided value.
-  void zoom(float);
+//  void zoom(float);
 
-  /// \brief Pan the source rectangle around.
+  /// \brief Pan the source rectangle around by the given amount.
   void panBy(const SDL_Point &delta);
   void panBy(int dx, int dy);
 
@@ -90,6 +90,7 @@ public:
   /// \brief
   int getTexHeight() const;
 
+  float getScaleFactor() const;
 
 private:
   Image();
@@ -99,7 +100,7 @@ private:
   SDL_Rect m_src;  ///< The cropping rectangle for this image.
   SDL_Point m_texDims;
 
-  float m_zoomFact;
+  float m_scaleFactor;
 
 
 };

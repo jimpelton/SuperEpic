@@ -37,7 +37,7 @@ Image::Image()
   , m_bbox{ 0, 0, 0, 0 }
   , m_src{ 0, 0, 0, 0 }
   , m_texDims{ 0, 0 }
-  , m_zoomFact{ 1 }
+  , m_scaleFactor{ 0 }
 { }
 
 
@@ -71,16 +71,13 @@ Image::scale(float s)
   int ww, wh;
   SDL_GetWindowSize(sdl_window(), &ww, &wh);
 
-//  m_bbox.w = std::min<int>(ww,
-//                           static_cast<int>(m_bbox.w * s));
-//  m_bbox.h = std::min<int>(wh,
-//                           static_cast<int>(m_bbox.h * s));
 
-  float aspect_ratio{ std::min<float>(m_bbox.w / float(m_texDims.x),
-                                      m_bbox.y / float(m_texDims.y)) };
+//  float aspect_ratio{ std::min<float>(ww / float(m_texDims.x),
+//                                      wh / float(m_texDims.y)) };
 
-  m_bbox.w = static_cast<int>(s * m_bbox.w * aspect_ratio);
-  m_bbox.h = static_cast<int>(s * m_bbox.h * aspect_ratio);
+
+  m_bbox.w = static_cast<int>(s * m_texDims.x /** aspect_ratio*/);
+  m_bbox.h = static_cast<int>(s * m_texDims.y /** aspect_ratio*/);
   m_bbox.x = (ww - m_bbox.w) / 2;
   m_bbox.y = (wh - m_bbox.h) / 2;
 }
@@ -94,9 +91,13 @@ Image::maximize()
   int ww, wh;
   SDL_GetWindowSize(sdl_window(), &ww, &wh);
 
+  // min(max_size / source_image_size)
   float aspect_ratio{ std::min<float>(ww / float(m_texDims.x), 
                                       wh / float(m_texDims.y) ) };
-  
+
+
+
+
   m_bbox.w = static_cast<int>(m_texDims.x * aspect_ratio);
   m_bbox.h = static_cast<int>(m_texDims.y * aspect_ratio);
   m_bbox.x = (ww - m_bbox.w) / 2;
@@ -112,43 +113,42 @@ Image::maximize()
 
 
 ///////////////////////////////////////////////////////////////////////////////
-void
-Image::zoom(float f)
-{
-  m_zoomFact += f;
-  //TODO: adjust cropping rectangle (m_src)
-  int ww, wh;
-  SDL_GetWindowSize(sdl_window(), &ww, &wh);
-
-  float aspect_ratio{ std::min<float>(ww / float(m_texDims.x),
-                                      wh / float(m_texDims.y) )};
-
-  m_src.w += static_cast<int>(f * aspect_ratio * 5.0f);
-  m_src.h += static_cast<int>(f * aspect_ratio * 5.0f);
-
-  m_src.x = (m_texDims.x - m_src.w) / 2;
-  m_src.y = (m_texDims.y - m_src.h) / 2;
-
-  if (m_src.w >= m_texDims.x){
-    m_src.w = m_texDims.x;
-    m_src.x = 0;
-    m_bbox.w += static_cast<int>(f * aspect_ratio * 5.0f);
-    m_bbox.x = (ww - m_bbox.w) / 2;
-  }
-
-  if (m_src.h >= m_texDims.y) {
-    m_src.h = m_texDims.y;
-    m_src.y = 0;
-    m_bbox.h += static_cast<int>(f * aspect_ratio * 5.0f);
-    m_bbox.y = (wh - m_bbox.h) / 2;
-  }
-
-  std::cout << "m_bbox: " << m_bbox.x << " " << m_bbox.y << " "
-            << m_bbox.w << " " << m_bbox.h << std::endl;
-  std::cout << "m_src: " << m_src.x << " " << m_src.y << " "
-            << m_src.w << " " << m_src.h << std::endl;
-
-}
+//void
+//Image::zoom(float f)
+//{
+//  //TODO: adjust cropping rectangle (m_src)
+//  int ww, wh;
+//  SDL_GetWindowSize(sdl_window(), &ww, &wh);
+//
+//  float aspect_ratio{ std::min<float>(ww / float(m_texDims.x),
+//                                      wh / float(m_texDims.y) )};
+//
+//  m_src.w += static_cast<int>(f * aspect_ratio * 5.0f);
+//  m_src.h += static_cast<int>(f * aspect_ratio * 5.0f);
+//
+//  m_src.x = (m_texDims.x - m_src.w) / 2;
+//  m_src.y = (m_texDims.y - m_src.h) / 2;
+//
+//  if (m_src.w >= m_texDims.x){
+//    m_src.w = m_texDims.x;
+//    m_src.x = 0;
+//    m_bbox.w += static_cast<int>(f * aspect_ratio * 5.0f);
+//    m_bbox.x = (ww - m_bbox.w) / 2;
+//  }
+//
+//  if (m_src.h >= m_texDims.y) {
+//    m_src.h = m_texDims.y;
+//    m_src.y = 0;
+//    m_bbox.h += static_cast<int>(f * aspect_ratio * 5.0f);
+//    m_bbox.y = (wh - m_bbox.h) / 2;
+//  }
+//
+//  std::cout << "m_bbox: " << m_bbox.x << " " << m_bbox.y << " "
+//            << m_bbox.w << " " << m_bbox.h << std::endl;
+//  std::cout << "m_src: " << m_src.x << " " << m_src.y << " "
+//            << m_src.w << " " << m_src.h << std::endl;
+//
+//}
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -283,4 +283,10 @@ int
 Image::getTexHeight() const
 {
   return m_texDims.y;
+}
+
+float
+Image::getScaleFactor() const
+{
+  return m_scaleFactor;
 }

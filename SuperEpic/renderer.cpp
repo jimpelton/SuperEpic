@@ -282,6 +282,7 @@ Renderer::onMouseButtonUp(const SDL_MouseButtonEvent& button)
 void
 Renderer::onKeyDown(const SDL_KeyboardEvent& key)
 {
+
   switch (key.keysym.sym) {
   case SDLK_ESCAPE:
     if (m_mode == DisplayMode::Image) { 
@@ -312,12 +313,14 @@ Renderer::onKeyDown(const SDL_KeyboardEvent& key)
     break;
   case SDLK_z:
     if (m_mode == DisplayMode::Image) {
-      m_imageModeImage->scale(-1);
+      float currentScaleFactor -= m_imageModeImage.getScaleFactor();
+      m_imageModeImage->scale(currentScaleFactor);
     }
     break;
   case SDLK_a:
     if (m_mode == DisplayMode::Image) {
-      m_imageModeImage->scale(1);
+      float currentScaleFactor += m_imageModeImage.getScaleFactor();
+      m_imageModeImage->scale(currentScaleFactor);
     }
 
   }
@@ -361,7 +364,7 @@ Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent& event)
     if (event.direction == SDL_MOUSEWHEEL_FLIPPED) {
       scrollDeg *= -1;
     }
-    m_imageModeImage->scale(1 + (scrollDeg * 0.5));
+//    m_imageModeImage->scale(1 + (scrollDeg * 0.5));
 //    if (scrollDeg < 0) { // scroll backward - zoom out
 //      if (m_imageScreenRatio <= 0) {
 //        m_destWindowRect.h -= m_windowHeightLeastIncrement * 2;
