@@ -56,7 +56,7 @@ private:
   /// \brief Render 5 images (thumbnails) in gallery mode.
   void renderGalleryMode();
   /// \brief Render transaction from gallery mode to image mode
-  void renderTransitionMode(float secondsSinceLastUpdate);
+  void renderTransitionMode(float secondsSinceLastUpdate, float targetScale);
   /// \brief Render the image pointed to by m_imageModeImage;
   void renderImageViewMode() const;
   /// \brief Render the texture for the cursor
@@ -92,7 +92,7 @@ private:
   std::vector<Image*> m_images;     ///< Textures currently loaded into memory.
   Image *m_imageModeImage;          ///< The image to display in image view mode.
                                     ///< Note: m_imageModeImage != m_images[m_currentImageHoverIndex], fyi!
-
+  float m_targetScale;
   bool m_fullScreen;            ///< If in fullscreen or not.
   bool m_shouldQuit;            ///< If the main loop should exit.
   bool m_useKinectForCursorPos; ///< If the kinect sensor should override mouse

@@ -166,7 +166,10 @@ Renderer::init()
 void
 Renderer::loop()
 {
+  float since = 0.0f; // seconds since last loop iteration
+  float then = 0.0f;
   while (!m_shouldQuit) {
+    since = SDL_GetTicks() * 1e-3f - then; // seconds
 
     // Pop events from the SDL event queue.
     // When we start using the kinect to control, this may get replaced, or
@@ -193,9 +196,9 @@ Renderer::loop()
     case DisplayMode::Gallery:
       renderGalleryMode();
       break;
-//    case DisplayMode::FromGalleryToImage:
-//      renderTransitionMode();
-//      break;
+    case DisplayMode::FromGalleryToImage:
+      renderTransitionMode(since, m_targetScale);
+      break;
     case DisplayMode::Image:
       renderImageViewMode();
       break;
@@ -204,7 +207,7 @@ Renderer::loop()
     renderCursorTexture();
 
     SDL_RenderPresent(m_renderer);
-
+    then = since;
   } // while(!m_shouldQuit)
 
   std::cout << "Exiting render loop\n";
@@ -241,13 +244,17 @@ Renderer::onMouseButtonUp(const SDL_MouseButtonEvent& button)
       if (m_clickCount == 1) {  // image selected under cursor
         m_selected = true;
       } else if (m_clickCount == 2) { // switch to image view mode.
-        m_mode = DisplayMode::Image;
+        //m_mode = DisplayMode::Image;
+        m_mode = DisplayMode::FromGalleryToImage;
         m_clickCount = 0;
         m_selected = false;
 
         int idx = SCREEN_COORD_TO_GAL_IDX(button.x);
         m_imageModeImage = IMG_FROM_GAL_IDX(idx);
         m_imageModeImage->maximize();
+        m_targetScale = m_imageModeImage->getScaleFactor();
+        m_imageModeImage->scale(0.0f);
+        // m_imageModeImage->maximize();
 //        SDL_QueryTexture(m_imageModeImage->getTexture(), nullptr, nullptr, 
 //                         &m_srcImageRect.w,
 //                         &m_srcImageRect.h);
@@ -406,9 +413,20 @@ Renderer::renderGalleryMode()
 
 ////////////////////////////////////////////////////////////////////////////
 void
-Renderer::renderTransitionMode(float secondsSinceLastUpdate)
+Renderer::renderTransitionMode(float secondsSinceLastUpdate, float targetScale)
 {
-  static float zoom_speed = 1.0f;
+  float zoom_speed = 0.001f;
+
+  float scale = m_imageModeImage->getScaleFactor() + (zoom_speed * secondsSinceLastUpdate);
+  if (scale > targetScale){
+    m_imageModeImage->scale(targetScale);
+    m_mode = DisplayMode::Image;
+    return;
+  }
+
+  m_imageModeImage->scale(scale);
+  m_imageModeImage->draw();
+
 
 //  SDL_Rect bounds{ m_imageModeImage->getBounds() };
 //  if (bounds.x + zoom_speed * secondsSinceLastUpdate > )
@@ -460,6 +478,7 @@ Renderer::renderImageTextures()
   int idx{ 0 };
   for (int idx{ 0 }; idx < NUM_IMAGES_TO_DRAW; ++idx, imgXPos+=imgWidth) {
     Image * img = IMG_FROM_GAL_IDX(idx);
+
     updateImageForGalleryView(img, imgXPos, imgWidth);
 
     img->draw();
