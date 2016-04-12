@@ -49,14 +49,11 @@ Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
   , m_renderer{ nullptr }
   , m_winDims{ winWidth, winHeight }
   , m_winPos{ winX, winY }
-  //, m_cursPos{ winWidth / 2, winHeight / 2 }
-  //, m_cursDims{ int(winHeight * DEFAULT_CURSOR_SCALE), int(winHeight * DEFAULT_CURSOR_SCALE) }
   , m_cursorSpeed{ DEFAULT_CURSOR_SPEED }
   , m_cursor{ new Cursor() }
   , m_mode{ DisplayMode::Gallery }
   , m_galleryStartIndex{ 0 }
   , m_images{ }
-//  , m_cursImg{ nullptr }
   , m_imageModeImage{ nullptr }
   , m_fullScreen{ false }
   , m_shouldQuit{ false }
@@ -313,13 +310,13 @@ Renderer::onKeyDown(const SDL_KeyboardEvent& key)
     break;
   case SDLK_z:
     if (m_mode == DisplayMode::Image) {
-      float currentScaleFactor -= m_imageModeImage.getScaleFactor();
+      float currentScaleFactor = m_imageModeImage->getScaleFactor() - 0.01f;
       m_imageModeImage->scale(currentScaleFactor);
     }
     break;
   case SDLK_a:
     if (m_mode == DisplayMode::Image) {
-      float currentScaleFactor += m_imageModeImage.getScaleFactor();
+      float currentScaleFactor = m_imageModeImage->getScaleFactor() + 0.01f;
       m_imageModeImage->scale(currentScaleFactor);
     }
 
@@ -409,8 +406,12 @@ Renderer::renderGalleryMode()
 
 ////////////////////////////////////////////////////////////////////////////
 void
-Renderer::renderTransitionMode()
+Renderer::renderTransitionMode(float secondsSinceLastUpdate)
 {
+  static float zoom_speed = 1.0f;
+
+//  SDL_Rect bounds{ m_imageModeImage->getBounds() };
+//  if (bounds.x + zoom_speed * secondsSinceLastUpdate > )
 //  if (m_destWindowRect.x >= 0 + m_windowWidthLeastIncrement &&
 //    m_destWindowRect.y >= 0 + m_windowHeightLeastIncrement &&
 //    m_destWindowRect.w <= m_winDims.x - m_windowWidthLeastIncrement * 2 &&
@@ -443,22 +444,14 @@ Renderer::renderImageViewMode() const
 void
 Renderer::renderCursorTexture() const
 {
-//  SDL_Rect dest;
-//  dest.x = m_cursPos.x - (m_cursDims.x / 2);
-//  dest.y = m_cursPos.y - (m_cursDims.y / 2);
-//  dest.w = m_cursDims.x;
-//  dest.h = m_cursDims.y;
-
-//  SDL_RenderCopy(m_renderer, m_img->getTexture(), nullptr, &dest);
-  
   m_cursor->draw();
-
 }
 
 ////////////////////////////////////////////////////////////////////////////
 void
 Renderer::renderImageTextures() 
 {
+
   const int imgWidth{ m_winDims.x / NUM_IMAGES_TO_DRAW };
   const int halfWinY{ m_winDims.y / 2 };
 
@@ -467,43 +460,17 @@ Renderer::renderImageTextures()
   int idx{ 0 };
   for (int idx{ 0 }; idx < NUM_IMAGES_TO_DRAW; ++idx, imgXPos+=imgWidth) {
     Image * img = IMG_FROM_GAL_IDX(idx);
-    
-    float aspect_ratio{ 
-      img->getTexWidth() / static_cast<float>(img->getTexHeight()) };
+    updateImageForGalleryView(img, imgXPos, imgWidth);
 
-    SDL_Rect dest;
-    dest.w = imgWidth;
-    // aspect_ratio = w / h --> h = w / aspect_ratio
-    dest.h = static_cast<int>(imgWidth / aspect_ratio); 
-    dest.x = imgXPos;
-    dest.y = halfWinY - (dest.h / 2); // center image vertically
-    
-    img->setBounds(dest);
     img->draw();
 
-    //SDL_RenderCopy(m_renderer, img->getTexture() , nullptr, &img->getBounds());
-    
     if (idx == m_currentImageHoverIndex && m_selected) {
-      renderImageSelectionRectangle(dest);
+      renderImageSelectionRectangle(img->getBounds());
     }
   }
 
 }
 
-////////////////////////////////////////////////////////////////////////////
-// void
-// Renderer::renderSingleTexture(SDL_Texture* tex, int x, int y, int w, int h)
-// const
-//{
-//  assert(tex != nullptr);
-//
-//  SDL_Rect dest;
-//  dest.x = x;
-//  dest.y = y;
-//  dest.w = w;
-//  dest.h = h;
-//  SDL_RenderCopy(m_renderer, tex, nullptr, &dest);
-//}
 
 ////////////////////////////////////////////////////////////////////////////
 void
@@ -515,6 +482,26 @@ Renderer::renderImageSelectionRectangle(const SDL_Rect& dest) const
   SDL_SetRenderDrawColor(m_renderer, 255, 0, 0, 0);
   SDL_RenderDrawRect(m_renderer, &dest);
   SDL_SetRenderDrawColor(m_renderer, r, g, b, a);
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+void
+Renderer::updateImageForGalleryView(Image* img, int imgXPos, int imgWidth)
+{
+
+  float aspect_ratio{
+      img->getTexWidth() / static_cast<float>(img->getTexHeight()) };
+
+  SDL_Rect dest;
+  dest.w = imgWidth;
+  // aspect_ratio = w / h --> h = w / aspect_ratio
+  dest.h = static_cast<int>(imgWidth / aspect_ratio);
+  dest.x = imgXPos;
+  dest.y = (m_winDims.y / 2) - (dest.h / 2); // center image vertically
+
+  img->setBounds(dest);
+
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -541,21 +528,6 @@ Renderer::toggleFullScreen()
   }
 }
 
-////////////////////////////////////////////////////////////////////////////
-//void
-//Renderer::loadSingleTexture(const std::string& path)
-//{
-//  Image *img{ Image::load(path) };
-//  
-//  if (!img) {
-//    std::cerr << "Could not load image texture: " << SDL_GetError()
-//        << std::endl;
-//    return;
-//  }
-//
-//  std::cout << "Loaded image: " << path << "\n";
-//  m_images.push_back(img);
-//}
 
 ////////////////////////////////////////////////////////////////////////////
 void

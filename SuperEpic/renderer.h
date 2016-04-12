@@ -56,7 +56,7 @@ private:
   /// \brief Render 5 images (thumbnails) in gallery mode.
   void renderGalleryMode();
   /// \brief Render transaction from gallery mode to image mode
-  void renderTransitionMode();
+  void renderTransitionMode(float secondsSinceLastUpdate);
   /// \brief Render the image pointed to by m_imageModeImage;
   void renderImageViewMode() const;
   /// \brief Render the texture for the cursor
@@ -66,6 +66,7 @@ private:
   /// \brief Render a rectangle around the texture under the cursor.
   void renderImageSelectionRectangle(const SDL_Rect &) const;
   /// \brief Toggle between windowed and fullscreen modes.
+  void updateImageForGalleryView(Image *img, int imgXPos, int imgWidth);
   void toggleFullScreen();
   /// \brief Print info for only SDL_WindowEvents.
   void printEvent(const SDL_Event *) const;

@@ -9,6 +9,7 @@ class Image
 {
 
 public:
+
   // These two functions are such a bad idea (for at least two reasons)
   static SDL_Renderer* 
   sdl_renderer(SDL_Renderer *ren = nullptr)
@@ -94,6 +95,7 @@ public:
 
 private:
   Image();
+
 
   SDL_Texture *m_texture;
   SDL_Rect m_bbox; ///< The bounding box for this image

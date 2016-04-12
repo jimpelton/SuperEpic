@@ -7,7 +7,6 @@
 namespace {
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
 Image*
 Image::load(const std::string &file)
@@ -27,6 +26,9 @@ Image::load(const std::string &file)
   image->m_src = image->m_bbox;
   image->m_texDims.x = image->m_bbox.w;
   image->m_texDims.y = image->m_bbox.h;
+
+  // this is just to init the m_scaleFactor variable to something that is not zero.
+  image->maximize();
 
   return image;
 }
@@ -49,6 +51,7 @@ Image::~Image()
   }
 }
 
+
 void 
 Image::draw()
 {
@@ -56,30 +59,25 @@ Image::draw()
 }
 
 
-///////////////////////////////////////////////////////////////////////////////
-//void
-//Image::scale(const SDL_Point &p)
-//{
-//  scale(p.x, p.y);
-//}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 void
 Image::scale(float s)
 {
+  if (s < 0.0f) {
+    s = 0.0f;
+  }
+
   int ww, wh;
   SDL_GetWindowSize(sdl_window(), &ww, &wh);
 
 
-//  float aspect_ratio{ std::min<float>(ww / float(m_texDims.x),
-//                                      wh / float(m_texDims.y)) };
-
-
-  m_bbox.w = static_cast<int>(s * m_texDims.x /** aspect_ratio*/);
-  m_bbox.h = static_cast<int>(s * m_texDims.y /** aspect_ratio*/);
+  m_bbox.w = static_cast<int>(s * m_texDims.x);
+  m_bbox.h = static_cast<int>(s * m_texDims.y);
   m_bbox.x = (ww - m_bbox.w) / 2;
   m_bbox.y = (wh - m_bbox.h) / 2;
+
+  m_scaleFactor = s;
 }
 
 
@@ -91,17 +89,11 @@ Image::maximize()
   int ww, wh;
   SDL_GetWindowSize(sdl_window(), &ww, &wh);
 
-  // min(max_size / source_image_size)
-  float aspect_ratio{ std::min<float>(ww / float(m_texDims.x), 
+  // min(max_size_possible / source_image_size)
+  float scale_factor{ std::min<float>(ww / float(m_texDims.x),
                                       wh / float(m_texDims.y) ) };
 
-
-
-
-  m_bbox.w = static_cast<int>(m_texDims.x * aspect_ratio);
-  m_bbox.h = static_cast<int>(m_texDims.y * aspect_ratio);
-  m_bbox.x = (ww - m_bbox.w) / 2;
-  m_bbox.y = (wh - m_bbox.h) / 2;
+  scale(scale_factor);
 
   // render entire texture
   m_src.x = 0;
@@ -109,46 +101,9 @@ Image::maximize()
   m_src.w = m_texDims.x;
   m_src.h = m_texDims.y;
 
+  m_scaleFactor = scale_factor;
+
 }
-
-
-///////////////////////////////////////////////////////////////////////////////
-//void
-//Image::zoom(float f)
-//{
-//  //TODO: adjust cropping rectangle (m_src)
-//  int ww, wh;
-//  SDL_GetWindowSize(sdl_window(), &ww, &wh);
-//
-//  float aspect_ratio{ std::min<float>(ww / float(m_texDims.x),
-//                                      wh / float(m_texDims.y) )};
-//
-//  m_src.w += static_cast<int>(f * aspect_ratio * 5.0f);
-//  m_src.h += static_cast<int>(f * aspect_ratio * 5.0f);
-//
-//  m_src.x = (m_texDims.x - m_src.w) / 2;
-//  m_src.y = (m_texDims.y - m_src.h) / 2;
-//
-//  if (m_src.w >= m_texDims.x){
-//    m_src.w = m_texDims.x;
-//    m_src.x = 0;
-//    m_bbox.w += static_cast<int>(f * aspect_ratio * 5.0f);
-//    m_bbox.x = (ww - m_bbox.w) / 2;
-//  }
-//
-//  if (m_src.h >= m_texDims.y) {
-//    m_src.h = m_texDims.y;
-//    m_src.y = 0;
-//    m_bbox.h += static_cast<int>(f * aspect_ratio * 5.0f);
-//    m_bbox.y = (wh - m_bbox.h) / 2;
-//  }
-//
-//  std::cout << "m_bbox: " << m_bbox.x << " " << m_bbox.y << " "
-//            << m_bbox.w << " " << m_bbox.h << std::endl;
-//  std::cout << "m_src: " << m_src.x << " " << m_src.y << " "
-//            << m_src.w << " " << m_src.h << std::endl;
-//
-//}
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -163,10 +118,12 @@ Image::panBy(const SDL_Point& delta)
 void
 Image::panBy(int dx, int dy)
 {
-  if (m_zoomFact <= 0) {
-    return;
-  }
-  //TODO: adjust location of src bounding rectangle
+  int ww, wh;
+  SDL_GetWindowSize(sdl_window(), &ww, &wh);
+  int max_x = m_bbox.x + m_bbox.w;
+  int max_y = m_bbox.y + m_bbox.h;
+  // if y is already off screen we can translate vertically
+  // if x is already off screen we can translate horizontally
 }
 
 
@@ -285,6 +242,8 @@ Image::getTexHeight() const
   return m_texDims.y;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
 float
 Image::getScaleFactor() const
 {
