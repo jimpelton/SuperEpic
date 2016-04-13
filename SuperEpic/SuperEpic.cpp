@@ -1,67 +1,113 @@
+#include "KinectSensor.h"
+#include "renderer.h"
 
 #include <SDL.h>
 
+#include <fstream>
 #include <iostream>
-#include <Kinect.h>
-#include <list>
+#include <iostream>
+#include <stdio.h>
+#include <tchar.h>
 #include <thread>
+#include <vector>
+#include <Strsafe.h>
 
-#include "KinectSensor.h"
+#include <cassert>
 
+bool parseImagesFile(const std::string &path,
+                     std::vector<std::string> *imagePaths) {
+  assert(imagePaths != nullptr);
+  std::ifstream imagesFile;
+  imagesFile.open(path);
+  if (!imagesFile.is_open()) {
+    std::cerr << "The images file: " << path << " could not be opened.\n"
+                                                "Exiting...\n";
+    return false;
+  }
 
-namespace
-{
-  const int WINDOW_WIDTH{ 640 };
-  const int WINDOW_HEIGHT{ 480 };
-} // namespace
+  while (!imagesFile.eof()) {
+    char buf[256];
+    imagesFile.getline(buf, 256);
+    std::string s{buf};
+    if (!s.empty())
+      imagePaths->push_back(s);
+  }
 
-int main(int argc, char *argv[])
-{
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    std::cerr << "SDL_Init failed: " << SDL_GetError() << 
-        "\nExiting..." << std::endl;
+  imagesFile.close();
+
+  return true;
+}
+
+bool parseImagesDirectory(const char *directoryPath,
+                          std::vector<std::string> *imagePaths) {
+  assert(imagePaths != nullptr);
+
+  DWORD retval = 0;
+  TCHAR buffer[4096] = TEXT("");
+  TCHAR **lppPart = {NULL};
+  TCHAR szDir[MAX_PATH];
+  WIN32_FIND_DATA ffd;
+  HANDLE hFind = INVALID_HANDLE_VALUE;
+  std::string path;
+
+  retval = GetFullPathName(directoryPath, 4096, buffer, lppPart);
+  if (retval == 0) {
+    // Handle an error condition.
+    printf("GetFullPathName failed (%d)\n", GetLastError());
+    return false;
+  }
+  path = std::string(buffer) + "\\";
+
+  StringCchCopy(szDir, MAX_PATH, directoryPath);
+  StringCchCat(szDir, MAX_PATH, TEXT("\\*"));
+  hFind = FindFirstFile(szDir, &ffd);
+  if (INVALID_HANDLE_VALUE == hFind) {
+    printf("%s\n", "FindFirstFileFailed");
+    return false;
+  }
+  do {
+    if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+      std::string filename(ffd.cFileName);
+      std::cout << path + filename << std::endl;
+      imagePaths->push_back(path + filename);
+    }
+  } while (FindNextFile(hFind, &ffd) != 0);
+
+  FindClose(hFind);
+  return true;
+}
+
+int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    std::cerr << "Please provide a text file with absolute image paths."
+              << "\n";
     return 1;
   }
 
-  // Set log messages
-  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
-
-  SDL_Window *window{ nullptr };
-  window = SDL_CreateWindow(
-    "SuperEpic",                       // window title
-    SDL_WINDOWPOS_UNDEFINED,           // initial x position
-    SDL_WINDOWPOS_UNDEFINED,           // initial y position
-    WINDOW_WIDTH,                      // width, in pixels
-    WINDOW_HEIGHT,                     // height, in pixels
-    SDL_WINDOW_OPENGL                  // flags - see below
-    );
-
-  if (window == nullptr) {
-    std::cerr << "Coult not create window: " << SDL_GetError() << std::endl;
+  std::vector<std::string> paths;
+  if (!parseImagesDirectory(argv[1], &paths)) {
+    return 1;
   }
 
-  SDL_DestroyWindow(window);
-  SDL_Quit();
+  Renderer renderer{1280, 720, SDL_WINDOWPOS_UNDEFINED,
+                    SDL_WINDOWPOS_UNDEFINED};
+  if (renderer.init() < 0) {
+    std::cerr << "Could not create Renderer! Exiting..." << std::endl;
+    return 1;
+  }
 
-
-  //KinectSensor::handCoords = new float[3];
   KinectSensor::handCoords[0] = 0.0f;
   KinectSensor::handCoords[1] = 0.0f;
   KinectSensor::handCoords[2] = 0.0f;
 
-  //KinectSensor::gestureTypeQueue = std::vector<int>();
+  std::thread t{&KinectSensor::updateHandPosition};
 
-  std::thread t1 = std::thread(&KinectSensor::updateHandPosition);
-  //std::thread t2 = std::thread(&KinectSensor::updateGesture);
+  renderer.loadImages(paths);
+  renderer.loop();
 
-  int * cursor = { new int[2] };
-  while (1) {
-	  KinectSensor::mapHandToCursor(KinectSensor::handCoords, 1920, 1080, cursor);
-	  char * g = KinectSensor::getGestureType();
-	  std::cout << g << std::endl;
-	  Sleep(500);
-  }
-	
+  KinectSensor::KeepUpdatingHandPos = false;
+
+  t.join();
+
   return 0;
 }
-
