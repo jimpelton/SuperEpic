@@ -107,7 +107,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)3rdParty\Kinect\Lib\x64;$(SolutionDir)3rdParty\SDL2-2.0.4\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;Kinect20.lib;opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;Kinect20.lib;Kinect20.VisualGestureBuilder.lib;opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
     </Link>
@@ -160,6 +160,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KinectSensor.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ZoomIn.gba" />
+    <None Include="ZoomOut.gba" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,10 +1,21 @@
 #pragma once
 #include <stdio.h>
 #include <iostream>
+#include <ctime>
+#include <Kinect.VisualGestureBuilder.h>
 
 #include "KinectSensor.h"
 
+int KinectSensor::mode = 1;
+
+
 float * KinectSensor::handCoords{ new float[3] };
+int KinectSensor::gestureType = NO_GESTURE;
+int KinectSensor::timer = 0;
+bool KinectSensor::rightHand_closed = false;
+bool KinectSensor::leftHand_closed = false;
+float KinectSensor::hand_pos_x = 0;
+float KinectSensor::hand_distance = 0;
 
 KinectSensor::KinectSensor()
 {
@@ -69,7 +80,6 @@ KinectSensor::KinectSensor()
 	if (FAILED(hr))
 		error("ERROR : pKinectSensor->getCoordinateMapper() : ", hr);
 }
-
 
 KinectSensor::~KinectSensor()
 {
@@ -198,6 +208,8 @@ void  KinectSensor::updateHandPosition() {
 					handCoords[1] = handJoint.Position.Y - spineJoint.Position.Y;
 					handCoords[2] = handJoint.Position.Z - spineJoint.Position.Z;
 
+					updateGesture(pBody);
+
 				}
 				pBody->Release();
 				pBody = NULL;
@@ -218,4 +230,252 @@ void KinectSensor::mapHandToCursor(float * handPosition, int screenWidth, int sc
 	cursor[1] = (y * screenWidth) / (VIRTUAL_RECTANGLE_CORNER_R_Y - VIRTUAL_RECTANGLE_CORNER_L_Y);
 	cursor[1] = cursor[1] < 0 ? 0 : cursor[1];
 	cursor[1] = cursor[1] > screenHeight ? screenHeight : cursor[1];
+}
+
+
+
+void KinectSensor::updateGesture(IBody * pBody) {
+	int hr;
+	HandState handState;
+	pBody->get_HandRightState(&handState);
+	if (handState == HandState_Closed) {
+
+		if (rightHand_closed) {
+			if (mode == 0) {
+				if(std::abs(hand_pos_x - handCoords[0]) > THRESHOLD_DISTANCE_SWAP_CANDIDATES) {
+					gestureType = SWAP_CANDIDATES;
+					timer = std::time(nullptr);
+				}
+				else if (std::time(nullptr) - timer > THRESHOLD_TIMER) {
+					gestureType = SELECT;
+				}
+				else {
+					gestureType = SELECTION_PROGRESS;
+				}
+			}
+			else {
+				gestureType = PANNING;
+			}
+			
+		}
+		else {
+			gestureType = PANNING;
+			timer = std::time(nullptr);
+			//Store hand position x
+			hand_pos_x = handCoords[0];
+		}
+		
+		if (mode == 1) {
+			pBody->get_HandLeftState(&handState);
+			if (handState == HandState_Closed) {
+				if (!leftHand_closed) {
+					leftHand_closed = true;
+					//Store distance
+					Joint joints[JointType_Count];
+					hr = pBody->GetJoints(_countof(joints), joints);
+					Joint rhj = joints[JointType_HandRight];
+					Joint lhj = joints[JointType_HandLeft];
+					hand_distance = sqrt((rhj.Position.X - lhj.Position.X)*(rhj.Position.X - lhj.Position.X) + (rhj.Position.Y - lhj.Position.Y)*(rhj.Position.Y - lhj.Position.Y));
+				}
+			}
+			else {
+				if (leftHand_closed) {
+					leftHand_closed = false;
+					Joint joints[JointType_Count];
+					hr = pBody->GetJoints(_countof(joints), joints);
+					Joint rhj = joints[JointType_HandRight];
+					Joint lhj = joints[JointType_HandLeft];
+					float d = sqrt((rhj.Position.X - lhj.Position.X)*(rhj.Position.X - lhj.Position.X) + (rhj.Position.Y - lhj.Position.Y)*(rhj.Position.Y - lhj.Position.Y));
+					if (d - hand_distance < 0) {
+						gestureType = ZOOM_OUT;
+						Sleep(500);
+					}
+					else {
+						gestureType = ZOOM_IN;
+						Sleep(500);
+					}
+				}
+			}
+		}
+		
+		//Set rightHand closed state true
+		rightHand_closed = true;
+	}
+	else {
+		//Detect no gesture 
+		gestureType = NO_GESTURE;
+		hand_pos_x = 0;
+		rightHand_closed = false;
+
+		if (mode == 1) {
+			// ZOOM IN/OUT
+			if (leftHand_closed) {
+				leftHand_closed = false;
+				Joint joints[JointType_Count];
+				hr = pBody->GetJoints(_countof(joints), joints);
+				Joint rhj = joints[JointType_HandRight];
+				Joint lhj = joints[JointType_HandLeft];
+				float d = sqrt((rhj.Position.X - lhj.Position.X)*(rhj.Position.X - lhj.Position.X) + (rhj.Position.Y - lhj.Position.Y)*(rhj.Position.Y - lhj.Position.Y));
+				if (d - hand_distance < 0) {
+					gestureType = ZOOM_OUT;
+					Sleep(500);
+				}
+				else {
+					gestureType = ZOOM_IN;
+					Sleep(500);
+				}
+			}
+		}
+	}
+}
+	/*
+	if (pBody->get_HandRightState == HandState_Closed) {
+		//Start timer
+		timer = std::time(nullptr);
+		//Store hand position x
+		hand_pos_x = handCoords[0];
+		gestureType = PANNING;
+		if (rightHand_closed) {
+			if (std::abs(hand_pos_x - handCoords[0]) > THRESHOLD_DISTANCE_SWAP_CANDIDATES) {
+				gestureType = SWAP_CANDIDATES;
+			}
+			else if (std::time(nullptr) - timer > THRESHOLD_TIMER)
+		}
+		if (pBody->get_HandLeftState == HandState_Closed) {
+			leftHand_closed = true;
+			//Store distance
+			Joint joints[JointType_Count];
+			hr = pBody->GetJoints(_countof(joints), joints);
+			Joint rhj = joints[JointType_HandRight];
+			Joint lhj = joints[JointType_HandLeft];
+			float hand_distance = sqrt((rhj.Position.X - lhj.Position.X)*(rhj.Position.X - lhj.Position.X) + (rhj.Position.Y - lhj.Position.Y)*(rhj.Position.Y - lhj.Position.Y));
+		}
+
+		//Set rightHand closed state true
+		rightHand_closed = true;
+	}
+	else {
+		
+		//timer set to 0
+		timer = 0;
+		//reset hand position
+		hand_pos_x = 0;
+		//compute actual distance of hands for zoom
+		if (rightHand_closed && leftHand_closed) {
+			Joint joints[JointType_Count];
+			hr = pBody->GetJoints(_countof(joints), joints);
+			Joint rhj = joints[JointType_HandRight];
+			Joint lhj = joints[JointType_HandLeft];
+			float d = sqrt((rhj.Position.X - lhj.Position.X)*(rhj.Position.X - lhj.Position.X) + (rhj.Position.Y - lhj.Position.Y)*(rhj.Position.Y - lhj.Position.Y));
+			if (d - hand_distance < 0)
+				gestureType = ZOOM_OUT;
+			else
+				gestureType = ZOOM_IN;
+		}
+		//reset hand distance
+		hand_distance = -1;
+		//Detect no gesture 
+		gestureType = NO_GESTURE;
+
+		//Set hand closed state false
+		rightHand_closed = false;
+		leftHand_closed = false;
+	}
+}
+*/
+
+/*void KinectSensor::updateGesture() {
+	std::cout << "Gesture initialized" << std::endl;
+	int hr;
+	IKinectSensor * pKinectSensor;
+	IVisualGestureBuilderFrameReader * pVisualGestureBuilderFrameReader[BODY_COUNT];
+	IGesture * pGesture;
+	IVisualGestureBuilderDatabase * pGestureDatabase;
+
+	hr = GetDefaultKinectSensor(&pKinectSensor);
+	if (FAILED(hr))
+		std::cout << "ERROR : getDefaultKinectSensor() : " << hr << std::endl;
+
+	// GET THE GESTURE READER //
+	IVisualGestureBuilderFrameSource* pGestureSource[BODY_COUNT];
+	for (int count = 0; count < BODY_COUNT; count++) {
+		// Source
+		hr = CreateVisualGestureBuilderFrameSource(pKinectSensor, 0, &pGestureSource[count]);
+		if (FAILED(hr))
+			std::cout << "Error : CreateVisualGestureBuilderFrameSource() : " << hr << std::endl;
+
+		// Reader
+		hr = pGestureSource[count]->OpenReader(&pVisualGestureBuilderFrameReader[count]);
+		if (FAILED(hr))
+			std::cout << "Error : IVisualGestureBuilderFrameSource::OpenReader() : " << hr << std::endl;
+	}
+
+	// Create Gesture Dataase from File (*.gba)
+	hr = CreateVisualGestureBuilderDatabaseInstanceFromFile(L"ZoomIn.gba"/*L"Swipe.gba"*-/, &pGestureDatabase);
+	if (FAILED(hr)) {
+		std::cerr << "Error : CreateVisualGestureBuilderDatabaseInstanceFromFile()" << std::endl;
+	}
+
+	// Add Gesture
+	UINT gestureCount = 0;
+	hr = pGestureDatabase->get_AvailableGesturesCount(&gestureCount);
+	if (FAILED(hr) || !gestureCount) {
+		std::cerr << "Error : IVisualGestureBuilderDatabase::get_AvailableGesturesCount()" << std::endl;
+	}
+
+
+	while (1) {
+		for (int count = 0; count < BODY_COUNT; count++) {
+			IVisualGestureBuilderFrame* pGestureFrame = nullptr;
+			hr = pVisualGestureBuilderFrameReader[count]->CalculateAndAcquireLatestFrame(&pGestureFrame);
+
+			if (SUCCEEDED(hr) && pGestureFrame != nullptr) {
+				BOOLEAN bGestureTracked = false;
+				hr = pGestureFrame->get_IsTrackingIdValid(&bGestureTracked);
+				if (SUCCEEDED(hr) && bGestureTracked) {
+					// Continuous Gesture (Sample Swipe.gba is Action to Swipe the hand in horizontal direction.)
+						IContinuousGestureResult* pGestureResult = nullptr;
+						hr = pGestureFrame->get_ContinuousGestureResult( pGesture, &pGestureResult );
+						if( SUCCEEDED( hr ) && pGestureResult != nullptr ){
+							float progress = 0.0f;
+							hr = pGestureResult->get_Progress( &progress );
+							if (progress > 0.8) std::cout << "Gesture Detected!!" << std::endl;
+						}
+
+					if (pGestureResult != NULL) {
+						pGestureResult->Release();
+						pGestureResult = NULL;
+					}
+				}
+			}
+			if (pGestureFrame != NULL) {
+				pGestureFrame->Release();
+				pGestureFrame = NULL;
+			}
+		}
+	}
+	
+}
+*/
+
+char * KinectSensor::getGestureType() {
+	switch (gestureType)
+	{
+	case NO_GESTURE:
+		return "NO_GESTURE";
+	case PANNING:
+		return "PANNING";
+	case SELECT:
+		return "SELECT";
+	case SWAP_CANDIDATES:
+		return "SWAP_CANDIDATES";
+	case ZOOM_IN:
+		return "ZOOM_IN";
+	case ZOOM_OUT:
+		return "ZOOM_OUT";
+	case SELECTION_PROGRESS:
+		return "SELECTION_PROGRESS";
+	default:
+		return nullptr;
+	}
 }

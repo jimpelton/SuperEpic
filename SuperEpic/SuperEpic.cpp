@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <Kinect.h>
+#include <list>
 #include <thread>
 
 #include "KinectSensor.h"
@@ -48,12 +49,17 @@ int main(int argc, char *argv[])
   KinectSensor::handCoords[1] = 0.0f;
   KinectSensor::handCoords[2] = 0.0f;
 
-  std::thread t = std::thread(&KinectSensor::updateHandPosition);
+  //KinectSensor::gestureTypeQueue = std::vector<int>();
+
+  std::thread t1 = std::thread(&KinectSensor::updateHandPosition);
+  //std::thread t2 = std::thread(&KinectSensor::updateGesture);
+
   int * cursor = { new int[2] };
   while (1) {
 	  KinectSensor::mapHandToCursor(KinectSensor::handCoords, 1920, 1080, cursor);
-	  std::cout << cursor[0] << "\t\t" << cursor[1] << std::endl;
-	  Sleep(1000);
+	  char * g = KinectSensor::getGestureType();
+	  std::cout << g << std::endl;
+	  Sleep(500);
   }
 	
   return 0;

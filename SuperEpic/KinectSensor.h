@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <Kinect.h>
+#include <Kinect.VisualGestureBuilder.h>
 
 #define FRAME_DEPTH		0
 #define FRAME_COLOR		1
@@ -15,10 +16,22 @@
 #define VIRTUAL_RECTANGLE_CORNER_R_X 0.35
 #define VIRTUAL_RECTANGLE_CORNER_R_Y 0.25
 
+#define THRESHOLD_DISTANCE_SWAP_CANDIDATES 0.1
+#define THRESHOLD_DISTANCE_ZOOMING 0.1
+#define THRESHOLD_TIMER 2
+
+#define NO_GESTURE 0
+#define SELECT 1
+#define PANNING 2
+#define SWAP_CANDIDATES 3
+#define ZOOM_IN 4
+#define ZOOM_OUT 5
+#define SELECTION_PROGRESS 6
+
 
 class KinectSensor
 {
-	
+
 private:
 	IKinectSensor * pKinectSensor;
 
@@ -26,9 +39,10 @@ private:
 	IColorFrameReader * pColorFrameReader;
 	IInfraredFrameReader * pInfraredFrameReader;
 	IBodyFrameReader * pBodyFrameReader;
+	IVisualGestureBuilderFrameReader * pVisualGestureBuilderFrameReader[BODY_COUNT];
 
 	ICoordinateMapper * m_pCoordinateMapper;
-
+	IVisualGestureBuilderDatabase * pGestureDatabase;
 	
 
 	void error(std::string e, HRESULT hr);
@@ -44,6 +58,17 @@ public:
 	IInfraredFrameReader * getInfraredFrameReader();
 	IBodyFrameReader * getBodyFrameReader();
 	ICoordinateMapper * getCoordinateMapper();
+	
+	IVisualGestureBuilderDatabase * GestureDatabase;
+	IGesture * pGesture;
+
+	static int mode;
+	static int gestureType;
+	static int timer;
+	static float hand_distance;
+	static float hand_pos_x;
+	static bool rightHand_closed;
+	static bool leftHand_closed;
 
 	
 	/* Returns the next frame from the depth reader */
@@ -63,6 +88,11 @@ public:
 	static void updateHandPosition();
 	static void mapHandToCursor(float * handPosition, int screenWidth, int screenHeight, int * cursor);
 	static float* handCoords;
+
+
+	/* Gesture builder functions */
+	static void updateGesture(IBody * pBody);
+	static char * getGestureType();
 																	/* Releases any Kinect interface */
 	template<class Interface>
 	void SafeRelease(Interface *& pInterface);//TODO
