@@ -65,8 +65,9 @@ private:
   void renderImageTextures();
   /// \brief Render a rectangle around the texture under the cursor.
   void renderImageSelectionRectangle(const SDL_Rect &) const;
-  /// \brief Toggle between windowed and fullscreen modes.
+  /// \brief Update img's position and size for the gallery view mode.
   void updateImageForGalleryView(Image *img, int imgXPos, int imgWidth);
+  /// \brief Toggle between windowed and fullscreen modes.
   void toggleFullScreen();
   /// \brief Print info for only SDL_WindowEvents.
   void printEvent(const SDL_Event *) const;
@@ -92,7 +93,10 @@ private:
   std::vector<Image*> m_images;     ///< Textures currently loaded into memory.
   Image *m_imageModeImage;          ///< The image to display in image view mode.
                                     ///< Note: m_imageModeImage != m_images[m_currentImageHoverIndex], fyi!
-  float m_targetScale;
+  
+  /// The scaling factor that the gallery to image transition should stop at.
+  float m_targetScale;           
+                                
   bool m_fullScreen;            ///< If in fullscreen or not.
   bool m_shouldQuit;            ///< If the main loop should exit.
   bool m_useKinectForCursorPos; ///< If the kinect sensor should override mouse

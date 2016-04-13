@@ -68,14 +68,12 @@ Image::scale(float s)
     s = 0.0f;
   }
 
-  int ww, wh;
-  SDL_GetWindowSize(sdl_window(), &ww, &wh);
-
+  SDL_Point c = getCenter();
 
   m_bbox.w = static_cast<int>(s * m_texDims.x);
   m_bbox.h = static_cast<int>(s * m_texDims.y);
-  m_bbox.x = (ww - m_bbox.w) / 2;
-  m_bbox.y = (wh - m_bbox.h) / 2;
+  m_bbox.x = c.x - m_bbox.w / 2; 
+  m_bbox.y = c.y - m_bbox.h / 2; 
 
   m_scaleFactor = s;
 }
@@ -94,6 +92,8 @@ Image::maximize()
                                       wh / float(m_texDims.y) ) };
 
   scale(scale_factor);
+  setPos((ww - m_bbox.w) / 2, 
+         (wh - m_bbox.h) / 2);
 
   // render entire texture
   m_src.x = 0;
