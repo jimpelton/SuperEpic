@@ -81,7 +81,7 @@ public:
 
   float getScaleFactor() const;
 
-  void setBaseScaleFactor(float sfactor);
+  void setBaseScaleFactor(float baseScaleFactor);
 
 private:
   Image();
@@ -90,7 +90,6 @@ private:
   SDL_Rect m_bbox; ///< The bounding box for this image
   SDL_Rect m_src;  ///< The cropping rectangle for this image.
   SDL_Point m_texDims;
-  SDL_Point m_translate;
 
   float m_scaleFactor;
   float m_baseScaleFactor;

@@ -1,14 +1,13 @@
 #ifndef epic_renderer_h__
 #define epic_renderer_h__
 
-#include "image.h"
 #include "cursor.h"
+#include "image.h"
 
 #include <SDL.h>
 
 #include <string>
 #include <vector>
-
 
 class Renderer {
 public:
@@ -71,6 +70,13 @@ private:
   void toggleFullScreen();
   /// \brief Print info for only SDL_WindowEvents.
   void printEvent(const SDL_Event *) const;
+  /// \brief Shift Candidates 
+  void shiftCandidates(int dx);
+  /// \brief Convert screen coords to a Gallery View index
+  int getGalleryIndexFromCoord(int screen_coords) const;
+  /// \brief Convert Gallery View index to Image
+  Image* getImageFromGalleryIndex(int index) const;
+
 
 private:
   SDL_Window *m_window;
@@ -79,48 +85,51 @@ private:
   SDL_Point m_winDims; ///< The current sdl_window dimensions
   SDL_Point m_winPos;  ///< The current sdl_window position
 
-  float m_cursorSpeed;           ///< Scale the speed of the cursor.
+  float m_cursorSpeed; ///< Scale the speed of the cursor.
   Cursor *m_cursor;
-  int m_currentImageHoverIndex;  ///< The image index that the cursor is hovering
-                                 /// over.
+  int m_currentImageHoverIndex; ///< The image index that the cursor is hovering
+                                /// over.
   int m_previousImageHoverIndex; ///< The image index that the cursor was
                                  /// hovering over.
 
-  DisplayMode m_mode;             ///< Gallery view, or image view
-  // RenderStrategy *m_rendStrat  ///< The method to render current DisplayMode (gallery or image view)
-  int m_galleryStartIndex;        ///< The index within the gallery to start at.
+  DisplayMode m_mode; ///< Gallery view, or image view
+  // RenderStrategy *m_rendStrat  ///< The method to render current DisplayMode
+  // (gallery or image view)
+  int m_galleryStartIndex; ///< The index within the gallery to start at.
 
-  std::vector<Image*> m_images;     ///< Textures currently loaded into memory.
-  Image *m_imageModeImage;          ///< The image to display in image view mode.
-                                    ///< Note: m_imageModeImage != m_images[m_currentImageHoverIndex], fyi!
-  
+  std::vector<Image *> m_images; ///< Textures currently loaded into memory.
+  Image *m_imageModeImage;       ///< The image to display in image view mode.
+  ///< Note: m_imageModeImage != m_images[m_currentImageHoverIndex], fyi!
+
   /// The scaling factor that the gallery to image transition should stop at.
-  float m_targetScale;           
-                                
+  float m_targetScale;
+
   bool m_fullScreen;            ///< If in fullscreen or not.
   bool m_shouldQuit;            ///< If the main loop should exit.
   bool m_useKinectForCursorPos; ///< If the kinect sensor should override mouse
-                                ///for cursor position.
+                                /// for cursor position.
 
+  int m_clickCount; ///< Number of clicks clicked.
+  bool m_selected;  ///< If user choose a candidate image.
 
-  int m_clickCount;              ///< Number of clicks clicked.
-  bool m_selected;               ///< If user choose a candidate image.
+  int m_numOfImage; ///< Total Number of actual image loaded.
+  int m_imageStartingPos;
 
-//  SDL_Rect m_srcImageRect;   ///< Source image rectangle.
-//  SDL_Rect m_destWindowRect; ///< Destination sdl_window rectangle.
-//  int m_imageScreenRatio;    ///< Image screen ratio,
-                             ///< 0 when image = screen
-                             ///< >0 when image > screen (zoomed in)
-                             ///< <0 when image < screen (zoomed out)
+  //  SDL_Rect m_srcImageRect;   ///< Source image rectangle.
+  //  SDL_Rect m_destWindowRect; ///< Destination sdl_window rectangle.
+  //  int m_imageScreenRatio;    ///< Image screen ratio,
+  ///< 0 when image = screen
+  ///< >0 when image > screen (zoomed in)
+  ///< <0 when image < screen (zoomed out)
 
-//  int m_windowHeightLeastIncrement; ///< Window height min increment
-//  int m_windowWidthLeastIncrement;  ///< Window width min increment
-//  int m_imageHeightLeastIncrement;  ///< Image height min increment
-//  int m_imageWidthLeastIncrement;   ///< Image width min increment
+  //  int m_windowHeightLeastIncrement; ///< Window height min increment
+  //  int m_windowWidthLeastIncrement;  ///< Window width min increment
+  //  int m_imageHeightLeastIncrement;  ///< Image height min increment
+  //  int m_imageWidthLeastIncrement;   ///< Image width min increment
 
-//  void findLeastIncrement(int width, int height,
-//                          bool isWindow); ///< Find least increment
-//  void smoothIncrement();
+  //  void findLeastIncrement(int width, int height,
+  //                          bool isWindow); ///< Find least increment
+  //  void smoothIncrement();
 };
 
 #endif // ! epic_renderer_h__

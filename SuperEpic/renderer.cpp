@@ -19,18 +19,11 @@ const int DEFAULT_WIN_Y{SDL_WINDOWPOS_UNDEFINED};
 const float DEFAULT_CURSOR_SCALE{0.11f};
 const float DEFAULT_CURSOR_SPEED{1.0f};
 
-const int NUM_IMAGES_TO_DRAW{5};
+const int NUM_IMAGES_TO_DRAW{6};
 
 const char *DEFAULT_CURSOR_TEXTURE_PATH{"../res/crosshair.png"};
 
 } // namespace
-
-#define IMG_FROM_GAL_IDX(_idx)                                                 \
-  m_images[(m_galleryStartIndex + (_idx)) % m_images.size()]
-
-/// \brief Convert screen coords to a Gallery View index
-#define SCREEN_COORD_TO_GAL_IDX(_screen_coords)                                \
-  (_screen_coords) / (m_winDims.x / NUM_IMAGES_TO_DRAW)
 
 ////////////////////////////////////////////////////////////////////////////
 Renderer::Renderer()
@@ -43,10 +36,9 @@ Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
       m_winPos{winX, winY}, m_cursorSpeed{DEFAULT_CURSOR_SPEED},
       m_cursor{new Cursor()}, m_mode{DisplayMode::Gallery},
       m_galleryStartIndex{0}, m_images{}, m_imageModeImage{nullptr},
-      m_fullScreen{false}, m_shouldQuit{false}, m_useKinectForCursorPos{false}
-
-      ,
-      m_clickCount{0}, m_selected{false} //  , m_srcImageRect{ 0, 0, 0, 0 }
+      m_fullScreen{false}, m_shouldQuit{false}, m_useKinectForCursorPos{false},
+      m_imageStartingPos{0}, m_clickCount{0},
+      m_selected{false} //  , m_srcImageRect{ 0, 0, 0, 0 }
 //  , m_destWindowRect{ 0, 0, 0, 0 }
 //  , m_imageScreenRatio{ 0 }
 //  , m_windowHeightLeastIncrement{ 0 }
@@ -57,8 +49,9 @@ Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
 
 ////////////////////////////////////////////////////////////////////////////
 Renderer::~Renderer() {
-  for (auto img : m_images)
+  for (auto img : m_images) {
     delete img;
+  }
 
   if (m_cursor != nullptr)
     delete m_cursor;
@@ -74,7 +67,9 @@ Renderer::~Renderer() {
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::loadImages(const std::vector<std::string> &images) {
-  for (auto &file : images) {
+  m_numOfImage = static_cast<int>(images.size());
+  for (int i = 0; i < m_numOfImage; i++) {
+    std::string file = images.at(i % images.size());
     Image *img{Image::load(file)};
 
     if (!img) {
@@ -187,6 +182,15 @@ void Renderer::loop() {
 }
 
 ////////////////////////////////////////////////////////////////////////////
+int Renderer::getGalleryIndexFromCoord(int screen_coords) const {
+  return (screen_coords - m_imageStartingPos) / (m_winDims.x / 5);
+}
+
+Image *Renderer::getImageFromGalleryIndex(int index) const {
+  return m_images[(m_galleryStartIndex + (index)) % m_numOfImage];
+}
+
+////////////////////////////////////////////////////////////////////////////
 void Renderer::onEvent(const SDL_Event &event) {
   if (event.type == SDL_MOUSEMOTION) {
     onMouseMotionEvent(event.motion);
@@ -218,8 +222,8 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
         m_clickCount = 0;
         m_selected = false;
 
-        int idx = SCREEN_COORD_TO_GAL_IDX(button.x);
-        m_imageModeImage = IMG_FROM_GAL_IDX(idx);
+        int idx = getGalleryIndexFromCoord(button.x);
+        m_imageModeImage = getImageFromGalleryIndex(idx);
         m_imageModeImage->maximize();
         m_targetScale = m_imageModeImage->getScaleFactor();
         m_imageModeImage->scale(0.0f);
@@ -260,16 +264,14 @@ void Renderer::onKeyDown(const SDL_KeyboardEvent &key) {
   case SDLK_ESCAPE:
     if (m_mode == DisplayMode::Image) {
       m_mode = DisplayMode::Gallery; // go back to gallery.
-    } else {
+    } else if (m_mode == DisplayMode::Gallery) {
       m_shouldQuit = true; // if in gallery, then quit.
     }
     break;
   case SDLK_LEFT:
     // scroll images left one index, wraps if start index is < 0.
     if (m_mode == DisplayMode::Gallery) {
-      m_galleryStartIndex = m_galleryStartIndex - 1 < 0
-                                ? static_cast<int>(m_images.size()) - 1
-                                : m_galleryStartIndex - 1;
+      shiftCandidates(-10);
     } else if (m_mode == DisplayMode::Image) {
       SDL_Point delta{10, 0};
       m_imageModeImage->panBy(delta);
@@ -278,8 +280,7 @@ void Renderer::onKeyDown(const SDL_KeyboardEvent &key) {
   case SDLK_RIGHT:
     // scroll images right one index, wraps if start index > m_images.size()-1
     if (m_mode == DisplayMode::Gallery) {
-      m_galleryStartIndex =
-          static_cast<int>((m_galleryStartIndex + 1) % m_images.size());
+      shiftCandidates(10);
     } else if (m_mode == DisplayMode::Image) {
       SDL_Point delta{-10, 0};
       m_imageModeImage->panBy(delta);
@@ -341,7 +342,7 @@ void Renderer::onWindowEvent(const SDL_WindowEvent &window) {
 void Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent &motion) {
   m_cursor->setPos(motion.x, motion.y);
   m_previousImageHoverIndex = m_currentImageHoverIndex;
-  m_currentImageHoverIndex = SCREEN_COORD_TO_GAL_IDX(motion.x);
+  m_currentImageHoverIndex = getGalleryIndexFromCoord(motion.x);
   if (m_previousImageHoverIndex != m_currentImageHoverIndex) {
     m_clickCount = 0;
     m_selected = false;
@@ -420,21 +421,19 @@ void Renderer::renderCursorTexture() const { m_cursor->draw(); }
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderImageTextures() {
-
-  const int imgWidth{m_winDims.x / NUM_IMAGES_TO_DRAW};
+  const int imgWidth{m_winDims.x / 5};
   const int halfWinY{m_winDims.y / 2};
 
-  int imgXPos{0};
+  int imgXPos = m_imageStartingPos;
 
-  int idx{0};
-  for (int idx{0}; idx < NUM_IMAGES_TO_DRAW; ++idx, imgXPos += imgWidth) {
-    Image *img = IMG_FROM_GAL_IDX(idx);
+  for (int i = 0; i < NUM_IMAGES_TO_DRAW; ++i, imgXPos += imgWidth) {
+    Image *img = getImageFromGalleryIndex(i);
 
     updateImageForGalleryView(img, imgXPos, imgWidth);
 
     img->draw();
 
-    if (idx == m_currentImageHoverIndex && m_selected) {
+    if (m_selected && i == m_currentImageHoverIndex) {
       renderImageSelectionRectangle(img->getBounds());
     }
   }
@@ -546,46 +545,28 @@ void Renderer::printEvent(const SDL_Event *event) const {
   }
 }
 
-// void
-// Renderer::findLeastIncrement(int width, int height, bool isWindow)
-//{
-//  int a = width, b = height, c;
-//  if (a < b) {
-//    c = b % a;
-//    while (c != 0) {
-//      b = a;
-//      a = c;
-//      c = b % a;
-//    }
-//  } else {
-//    c = a % b;
-//    while (c != 0) {
-//      a = b;
-//      b = c;
-//      c = a % b;
-//    }
-//  }
-//  if (isWindow) {
-//    m_windowWidthLeastIncrement = width / b;
-//    m_windowHeightLeastIncrement = height / b;
-//  } else {
-//    m_imageWidthLeastIncrement = width / b;
-//    m_imageHeightLeastIncrement = height / b;
-//  }
-//}
-
-// void
-// Renderer::smoothIncrement()
-//{
-//  if (m_windowHeightLeastIncrement > m_imageHeightLeastIncrement) {
-//    m_imageWidthLeastIncrement *=
-//        m_windowHeightLeastIncrement / m_imageHeightLeastIncrement;
-//    m_imageHeightLeastIncrement *=
-//        m_windowHeightLeastIncrement / m_imageHeightLeastIncrement;
-//  } else {
-//    m_windowWidthLeastIncrement *=
-//        m_imageHeightLeastIncrement / m_windowHeightLeastIncrement;
-//    m_windowHeightLeastIncrement *=
-//        m_imageHeightLeastIncrement / m_windowHeightLeastIncrement;
-//  }
-//}
+////////////////////////////////////////////////////////////////////////////
+void Renderer::shiftCandidates(int dx) {
+  const int imgWidth{m_winDims.x / 5};
+  if (dx < 0) { // shift to left to bring up new candidate from right
+    if (m_galleryStartIndex + 5 < m_numOfImage) {
+      if (m_imageStartingPos + dx + imgWidth < 0) {
+        m_galleryStartIndex++;
+        m_imageStartingPos = 0;
+      } else {
+        m_imageStartingPos += dx;
+      }
+    }
+  } else { // shift to right to bring up new candidate from left
+    if (!(m_galleryStartIndex == 0 && m_imageStartingPos == 0)) {
+      if (m_imageStartingPos == 0) {
+        m_galleryStartIndex--;
+        m_imageStartingPos = dx - imgWidth;
+      } else {
+        m_imageStartingPos += dx;
+        if (m_imageStartingPos > 0)
+          m_imageStartingPos = 0;
+      }
+    }
+  }
+}

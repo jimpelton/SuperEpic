@@ -14,8 +14,8 @@
 #include <vector>
 
 #ifdef WIN32
-#include <tchar.h>
 #include <Strsafe.h>
+#include <tchar.h>
 #endif
 
 #include <cassert>
@@ -77,7 +77,9 @@ bool parseImagesDirectory(const char *directoryPath,
     if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
       std::string filename(ffd.cFileName);
       std::cout << path + filename << std::endl;
-      imagePaths->push_back(path + filename);
+      if (filename != "Thumbs.db") {
+        imagePaths->push_back(path + filename);
+      }
     }
   } while (FindNextFile(hFind, &ffd) != 0);
 

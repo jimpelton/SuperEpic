@@ -34,7 +34,7 @@ Image *Image::load(const std::string &file) {
 ///////////////////////////////////////////////////////////////////////////////
 Image::Image()
     : m_texture{nullptr}, m_bbox{0, 0, 0, 0}, m_src{0, 0, 0, 0},
-      m_texDims{0, 0}, m_scaleFactor{0}, m_translate{0, 0} {}
+      m_texDims{0, 0}, m_scaleFactor{0} {}
 
 ///////////////////////////////////////////////////////////////////////////////
 Image::~Image() {
@@ -52,20 +52,39 @@ void Image::scale(float s) {
   if (s < 0.0f) {
     s = 0.0f;
   }
-  translateBy(0 - m_translate.x, 0 - m_translate.y);
+  int ww, wh, x_max = m_texDims.x * s, y_max = m_texDims.y * s;
+  SDL_GetWindowSize(sdl_window(), &ww, &wh);
   SDL_Point c = getCenter();
 
   m_bbox.w = static_cast<int>(s * m_texDims.x);
   m_bbox.h = static_cast<int>(s * m_texDims.y);
   m_bbox.x = c.x - m_bbox.w / 2;
   m_bbox.y = c.y - m_bbox.h / 2;
-  translateBy(m_translate.x, m_translate.y);
+
+  if (m_scaleFactor > s) {
+    if (s <= m_baseScaleFactor || ww >= x_max || wh >= y_max) { // center image
+      setPos((ww - m_bbox.w) / 2, (wh - m_bbox.h) / 2);
+    } else { // align boarder
+      int dx = 0, dy = 0;
+      if (m_bbox.x > 0) {
+        dx = 0 - m_bbox.x;
+      } else if (m_bbox.x + x_max < ww) {
+        dx = ww - m_bbox.x - x_max;
+      }
+      if (m_bbox.y > 0) {
+        dy = 0 - m_bbox.y;
+      } else if (m_bbox.y + y_max < wh) {
+        dy = wh - m_bbox.y - y_max;
+      }
+      translateBy(dx, dy);
+    }
+  }
+
   m_scaleFactor = s;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void Image::maximize() {
-
   int ww, wh;
   SDL_GetWindowSize(sdl_window(), &ww, &wh);
 
@@ -105,8 +124,6 @@ void Image::panBy(int dx, int dy) {
       dy = 0;
     }
     translateBy(dx, dy);
-    m_translate.x += dx;
-    m_translate.y += dy;
   }
 }
 
@@ -170,4 +187,6 @@ int Image::getTexHeight() const { return m_texDims.y; }
 ///////////////////////////////////////////////////////////////////////////////
 float Image::getScaleFactor() const { return m_scaleFactor; }
 
-void Image::setBaseScaleFactor(float sfactor) { m_baseScaleFactor = sfactor; }
+void Image::setBaseScaleFactor(float baseScaleFactor) {
+  m_baseScaleFactor = baseScaleFactor;
+}
