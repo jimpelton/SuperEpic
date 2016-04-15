@@ -62,10 +62,15 @@ private:
   void renderCursorTexture() const;
   /// \brief Renders five of the textures in m_images.
   void renderImageTextures();
+  /// \brief Renders all thumbs
+  void renderThumbsTexture();
   /// \brief Render a rectangle around the texture under the cursor.
-  void renderImageSelectionRectangle(const SDL_Rect &) const;
+  void Renderer::renderRectangle(const SDL_Rect &dest, Uint8 R, Uint8 G,
+                                 Uint8 B) const;
   /// \brief Update img's position and size for the gallery view mode.
   void updateImageForGalleryView(Image *img, int imgXPos, int imgWidth);
+  /// \brief Update thumb's position and size for the gallery view mode.
+  void updateThumbForGalleryView(Image *thumb, int thumbXPos, int thumbWidth);
   /// \brief Toggle between windowed and fullscreen modes.
   void toggleFullScreen();
   /// \brief Print info for only SDL_WindowEvents.

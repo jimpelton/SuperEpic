@@ -68,16 +68,16 @@ Renderer::~Renderer() {
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::loadImages(const std::vector<std::string> &images) {
   for (auto file : images) {
-    Image *img{Image::load(file)};
-
-    if (!img) {
+    Image *texture{Image::load(file)};
+    if (!texture) {
       std::cerr << "Could not load image texture: " << SDL_GetError()
                 << std::endl;
       return;
     }
-
     std::cout << "Loaded image: " << file << "\n";
-    m_images.push_back(img);
+    m_images.push_back(texture);
+    Image *thumb = new Image(*texture);
+    m_thumbs.push_back(thumb);
   }
 }
 
@@ -391,7 +391,10 @@ void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::renderGalleryMode() { renderImageTextures(); }
+void Renderer::renderGalleryMode() {
+  renderImageTextures();
+  renderThumbsTexture();
+}
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderTransitionMode(float secondsSinceLastUpdate,
@@ -420,7 +423,6 @@ void Renderer::renderCursorTexture() const { m_cursor->draw(); }
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderImageTextures() {
   const int imgWidth{m_winDims.x / 5};
-  const int halfWinY{m_winDims.y / 2};
 
   int imgXPos = m_imageStartingPos;
 
@@ -432,17 +434,40 @@ void Renderer::renderImageTextures() {
     img->draw();
 
     if (m_selected && i == m_currentImageHoverIndex) {
-      renderImageSelectionRectangle(img->getBounds());
+      renderRectangle(img->getBounds(), 255, 0, 0);
     }
   }
 }
 
+void Renderer::renderThumbsTexture() {
+  const int thumbWidth{m_winDims.x / (5 * static_cast<int>(m_thumbs.size()))};
+  const int imgWidth{m_winDims.x / 5};
+  int thumbXpos = 2 * m_winDims.x / 5;
+  SDL_Rect thumbBox;
+  thumbBox.h = 0;
+  thumbBox.x = thumbXpos;
+  thumbBox.w = 5 * thumbWidth;
+  for (auto thumb : m_thumbs) {
+    updateThumbForGalleryView(thumb, thumbXpos, thumbWidth);
+    thumbXpos += thumbWidth;
+    thumb->draw();
+    if (thumbBox.h < thumb->getBounds().h)
+      thumbBox.h = thumb->getBounds().h;
+  }
+  thumbBox.h *= 1.2;
+  thumbBox.y = (m_winDims.y * 4 / 5) - (thumbBox.h / 2);
+  thumbBox.x += thumbWidth * m_galleryStartIndex -
+                (m_imageStartingPos * thumbWidth / imgWidth);
+  renderRectangle(thumbBox, 0, 255, 255);
+}
+
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::renderImageSelectionRectangle(const SDL_Rect &dest) const {
+void Renderer::renderRectangle(const SDL_Rect &dest, Uint8 R, Uint8 G,
+                               Uint8 B) const {
   // save the clear color so it can be restored after DrawRect()
   Uint8 r, g, b, a;
   SDL_GetRenderDrawColor(m_renderer, &r, &g, &b, &a);
-  SDL_SetRenderDrawColor(m_renderer, 255, 0, 0, 0);
+  SDL_SetRenderDrawColor(m_renderer, R, G, B, 0);
   SDL_RenderDrawRect(m_renderer, &dest);
   SDL_SetRenderDrawColor(m_renderer, r, g, b, a);
 }
@@ -462,6 +487,21 @@ void Renderer::updateImageForGalleryView(Image *img, int imgXPos,
   dest.y = (m_winDims.y / 2) - (dest.h / 2); // center image vertically
 
   img->setBounds(dest);
+}
+
+void Renderer::updateThumbForGalleryView(Image *thumb, int thumbXPos,
+                                         int thumbWidth) {
+  float aspect_ratio{thumb->getTexWidth() /
+                     static_cast<float>(thumb->getTexHeight())};
+
+  SDL_Rect dest;
+  dest.w = thumbWidth;
+  // aspect_ratio = w / h --> h = w / aspect_ratio
+  dest.h = static_cast<int>(thumbWidth / aspect_ratio);
+  dest.x = thumbXPos;
+  dest.y = (m_winDims.y * 4 / 5) - (dest.h / 2);
+
+  thumb->setBounds(dest);
 }
 
 ////////////////////////////////////////////////////////////////////////////
