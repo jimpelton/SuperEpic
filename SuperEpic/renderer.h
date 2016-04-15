@@ -70,13 +70,12 @@ private:
   void toggleFullScreen();
   /// \brief Print info for only SDL_WindowEvents.
   void printEvent(const SDL_Event *) const;
-  /// \brief Shift Candidates 
+  /// \brief Shift Candidates
   void shiftCandidates(int dx);
   /// \brief Convert screen coords to a Gallery View index
   int getGalleryIndexFromCoord(int screen_coords) const;
   /// \brief Convert Gallery View index to Image
-  Image* getImageFromGalleryIndex(int index) const;
-
+  Image *getImageFromGalleryIndex(int index) const;
 
 private:
   SDL_Window *m_window;
@@ -98,6 +97,7 @@ private:
   int m_galleryStartIndex; ///< The index within the gallery to start at.
 
   std::vector<Image *> m_images; ///< Textures currently loaded into memory.
+  std::vector<Image *> m_thumbs; ///< Textures for thumbs
   Image *m_imageModeImage;       ///< The image to display in image view mode.
   ///< Note: m_imageModeImage != m_images[m_currentImageHoverIndex], fyi!
 
@@ -112,7 +112,6 @@ private:
   int m_clickCount; ///< Number of clicks clicked.
   bool m_selected;  ///< If user choose a candidate image.
 
-  int m_numOfImage; ///< Total Number of actual image loaded.
   int m_imageStartingPos;
 
   //  SDL_Rect m_srcImageRect;   ///< Source image rectangle.

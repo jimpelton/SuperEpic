@@ -67,9 +67,7 @@ Renderer::~Renderer() {
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::loadImages(const std::vector<std::string> &images) {
-  m_numOfImage = static_cast<int>(images.size());
-  for (int i = 0; i < m_numOfImage; i++) {
-    std::string file = images.at(i % images.size());
+  for (auto file : images) {
     Image *img{Image::load(file)};
 
     if (!img) {
@@ -187,7 +185,7 @@ int Renderer::getGalleryIndexFromCoord(int screen_coords) const {
 }
 
 Image *Renderer::getImageFromGalleryIndex(int index) const {
-  return m_images[(m_galleryStartIndex + (index)) % m_numOfImage];
+  return m_images[(m_galleryStartIndex + (index)) % m_images.size()];
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -549,7 +547,7 @@ void Renderer::printEvent(const SDL_Event *event) const {
 void Renderer::shiftCandidates(int dx) {
   const int imgWidth{m_winDims.x / 5};
   if (dx < 0) { // shift to left to bring up new candidate from right
-    if (m_galleryStartIndex + 5 < m_numOfImage) {
+    if (m_galleryStartIndex + 5 < m_images.size()) {
       if (m_imageStartingPos + dx + imgWidth < 0) {
         m_galleryStartIndex++;
         m_imageStartingPos = 0;
