@@ -1,4 +1,7 @@
+#ifdef WIN32
 #include "KinectSensor.h"
+#endif
+
 #include "renderer.h"
 
 #include <SDL.h>
@@ -7,10 +10,13 @@
 #include <iostream>
 #include <iostream>
 #include <stdio.h>
-#include <tchar.h>
 #include <thread>
 #include <vector>
+
+#ifdef WIN32
 #include <Strsafe.h>
+#include <tchar.h>
+#endif
 
 #include <cassert>
 
@@ -37,6 +43,8 @@ bool parseImagesFile(const std::string &path,
 
   return true;
 }
+
+#ifdef WIN32
 
 bool parseImagesDirectory(const char *directoryPath,
                           std::vector<std::string> *imagePaths) {
@@ -69,13 +77,17 @@ bool parseImagesDirectory(const char *directoryPath,
     if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
       std::string filename(ffd.cFileName);
       std::cout << path + filename << std::endl;
-      imagePaths->push_back(path + filename);
+      if (filename != "Thumbs.db") {
+        imagePaths->push_back(path + filename);
+      }
     }
   } while (FindNextFile(hFind, &ffd) != 0);
 
   FindClose(hFind);
   return true;
 }
+
+#endif
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
@@ -85,9 +97,15 @@ int main(int argc, char *argv[]) {
   }
 
   std::vector<std::string> paths;
+#ifdef WIN32
   if (!parseImagesDirectory(argv[1], &paths)) {
     return 1;
   }
+#else
+  if (!parseImagesFile(argv[1], &paths)) {
+    return 1;
+  }
+#endif
 
   Renderer renderer{1280, 720, SDL_WINDOWPOS_UNDEFINED,
                     SDL_WINDOWPOS_UNDEFINED};
@@ -96,18 +114,22 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+#ifdef WIN32
   KinectSensor::handCoords[0] = 0.0f;
   KinectSensor::handCoords[1] = 0.0f;
   KinectSensor::handCoords[2] = 0.0f;
 
   std::thread t{&KinectSensor::updateHandPosition};
+#endif
 
   renderer.loadImages(paths);
   renderer.loop();
 
+#ifdef WIN32
   KinectSensor::KeepUpdatingHandPos = false;
 
   t.join();
+#endif
 
   return 0;
 }

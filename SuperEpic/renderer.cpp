@@ -1,7 +1,9 @@
-#include "renderer.h"
-#include "KinectSensor.h"
 
-#include <SDL_image.h>
+#include "renderer.h"
+
+#ifdef WIN32
+#include "KinectSensor.h"
+#endif
 
 #include <algorithm>
 #include <cassert>
@@ -14,20 +16,14 @@ const int DEFAULT_WIN_HEIGHT{480};
 const int DEFAULT_WIN_X{SDL_WINDOWPOS_UNDEFINED};
 const int DEFAULT_WIN_Y{SDL_WINDOWPOS_UNDEFINED};
 
-const float CURSOR_SCALE{0.11f};
+const float DEFAULT_CURSOR_SCALE{0.11f};
 const float DEFAULT_CURSOR_SPEED{1.0f};
 
-const int NUM_IMAGES_TO_DRAW{5};
+const int NUM_IMAGES_TO_DRAW{6};
 
 const char *DEFAULT_CURSOR_TEXTURE_PATH{"../res/crosshair.png"};
 
 } // namespace
-
-#define TEX_FROM_GAL_IDX(_idx)                                                 \
-  m_images[(m_galleryStartIndex + (_idx)) % m_images.size()]
-
-#define SCREEN_TO_GAL_IDX(_screen_coords)                                      \
-  (_screen_coords) / (m_winDims.x / NUM_IMAGES_TO_DRAW)
 
 ////////////////////////////////////////////////////////////////////////////
 Renderer::Renderer()
@@ -37,24 +33,28 @@ Renderer::Renderer()
 ////////////////////////////////////////////////////////////////////////////
 Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
     : m_window{nullptr}, m_renderer{nullptr}, m_winDims{winWidth, winHeight},
-      m_winPos{winX, winY}, m_cursPos{winWidth / 2, winHeight / 2},
-      m_cursDims{int(winHeight * CURSOR_SCALE), int(winHeight * CURSOR_SCALE)},
-      m_cursorSpeed{DEFAULT_CURSOR_SPEED}, m_mode{DisplayMode::Gallery},
-      m_galleryStartIndex{0}, m_images{}, m_cursTex{nullptr},
-      m_imageModeTex{nullptr}, m_fullScreen{false}, m_clickCount{0},
-      m_selected{false}, m_srcImageRect{0, 0, 0, 0},
-      m_destWindowRect{0, 0, 0, 0}, m_imageScreenRatio{0},
-      m_windowWidthLeastIncrement{0}, m_windowHeightLeastIncrement{0},
-      m_imageHeightLeastIncrement{0}, m_imageWidthLeastIncrement{0},
-      m_shouldQuit{false} {}
+      m_winPos{winX, winY}, m_cursorSpeed{DEFAULT_CURSOR_SPEED},
+      m_cursor{new Cursor()}, m_mode{DisplayMode::Gallery},
+      m_galleryStartIndex{0}, m_images{}, m_imageModeImage{nullptr},
+      m_fullScreen{false}, m_shouldQuit{false}, m_useKinectForCursorPos{false},
+      m_imageStartingPos{0}, m_clickCount{0},
+      m_selected{false} //  , m_srcImageRect{ 0, 0, 0, 0 }
+//  , m_destWindowRect{ 0, 0, 0, 0 }
+//  , m_imageScreenRatio{ 0 }
+//  , m_windowHeightLeastIncrement{ 0 }
+//  , m_windowWidthLeastIncrement{ 0 }
+//  , m_imageHeightLeastIncrement{ 0 }
+//  , m_imageWidthLeastIncrement{ 0 }
+{}
 
 ////////////////////////////////////////////////////////////////////////////
 Renderer::~Renderer() {
-  for (auto &tex : m_images)
-    SDL_DestroyTexture(tex);
+  for (auto img : m_images) {
+    delete img;
+  }
 
-  if (m_cursTex != nullptr)
-    SDL_DestroyTexture(m_cursTex);
+  if (m_cursor != nullptr)
+    delete m_cursor;
 
   if (m_renderer != nullptr)
     SDL_DestroyRenderer(m_renderer);
@@ -67,8 +67,17 @@ Renderer::~Renderer() {
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::loadImages(const std::vector<std::string> &images) {
-  for (auto &file : images) {
-    loadSingleTexture(file);
+  for (auto file : images) {
+    Image *texture{Image::load(file)};
+    if (!texture) {
+      std::cerr << "Could not load image texture: " << SDL_GetError()
+                << std::endl;
+      return;
+    }
+    std::cout << "Loaded image: " << file << "\n";
+    m_images.push_back(texture);
+    Image *thumb = new Image(*texture);
+    m_thumbs.push_back(thumb);
   }
 }
 
@@ -82,51 +91,53 @@ int Renderer::init() {
   // Set log messages
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
 
-  SDL_Window *window{nullptr};
-  window = SDL_CreateWindow("SuperEpic",      // window title
-                            m_winPos.x,       // initial x position
-                            m_winPos.y,       // initial y position
-                            m_winDims.x,      // width, in pixels
-                            m_winDims.y,      // height, in pixels
-                            SDL_WINDOW_OPENGL // flags
-                            );
+  m_window = SDL_CreateWindow("SuperEpic",      // sdl_window title
+                              m_winPos.x,       // initial x position
+                              m_winPos.y,       // initial y position
+                              m_winDims.x,      // width, in pixels
+                              m_winDims.y,      // height, in pixels
+                              SDL_WINDOW_OPENGL // flags
+                              );
 
-  if (window == nullptr) {
-    std::cerr << "Coult not create window: " << SDL_GetError() << "\n";
+  if (m_window == nullptr) {
+    std::cerr << "Coult not create sdl_window: " << SDL_GetError() << "\n";
     return -1;
   }
 
-  SDL_Renderer *renderer{nullptr};
-  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED |
-                                                SDL_RENDERER_PRESENTVSYNC);
+  Image::sdl_window(m_window);
 
-  if (renderer == nullptr) {
+  m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED |
+                                                    SDL_RENDERER_PRESENTVSYNC);
+
+  if (m_renderer == nullptr) {
     std::cerr << "Could not create SDL_Renderer: " << SDL_GetError() << "\n";
     return -1;
   }
 
-  SDL_Texture *curtex{nullptr};
-  curtex = IMG_LoadTexture(renderer, DEFAULT_CURSOR_TEXTURE_PATH);
+  Image::sdl_renderer(m_renderer);
 
-  if (curtex == nullptr) {
+  Image *cursImg = Image::load(DEFAULT_CURSOR_TEXTURE_PATH);
+  if (cursImg == nullptr) {
     std::cerr << "Could not load image texture: " << SDL_GetError()
               << std::endl;
     return -1;
   }
+  m_cursor->setImage(cursImg);
+  m_cursor->setSize(static_cast<int>(m_winDims.x * DEFAULT_CURSOR_SCALE),
+                    static_cast<int>(m_winDims.x * DEFAULT_CURSOR_SCALE));
 
   SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2); // anti-aliasing
   SDL_ShowCursor(0);                                 // don't show mouse arrow.
-
-  m_window = window;
-  m_renderer = renderer;
-  m_cursTex = curtex;
 
   return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::loop() {
+  float since = 0.0f; // seconds since last loop iteration
+  float then = 0.0f;
   while (!m_shouldQuit) {
+    since = SDL_GetTicks() * 1e-3f - then; // seconds
 
     // Pop events from the SDL event queue.
     // When we start using the kinect to control, this may get replaced, or
@@ -136,12 +147,14 @@ void Renderer::loop() {
       printEvent(&event);
       onEvent(event);
     }
-
+#ifdef WIN32
     if (m_useKinectForCursorPos) {
+      SDL_Point pos;
       KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
-                                    m_winDims.y,
-                                    reinterpret_cast<int *>(&m_cursPos));
+                                    m_winDims.y, reinterpret_cast<int *>(&pos));
+      m_cursor->setPos(pos.x, pos.y);
     }
+#endif
 
 	std::cout << KinectSensor::getGestureType() << std::endl;
 
@@ -152,7 +165,7 @@ void Renderer::loop() {
       renderGalleryMode();
       break;
     case DisplayMode::FromGalleryToImage:
-      renderTransactionMode();
+      renderTransitionMode(since, m_targetScale);
       break;
     case DisplayMode::Image:
       renderImageViewMode();
@@ -162,24 +175,28 @@ void Renderer::loop() {
     renderCursorTexture();
 
     SDL_RenderPresent(m_renderer);
-
+    then = since;
   } // while(!m_shouldQuit)
 
-  std::cout << "Exiting render loop..."
-            << "\n";
+  std::cout << "Exiting render loop\n";
+}
+
+////////////////////////////////////////////////////////////////////////////
+int Renderer::getGalleryIndexFromCoord(int screen_coords) const {
+  return (screen_coords - m_imageStartingPos) / (m_winDims.x / 5);
+}
+
+Image *Renderer::getImageFromGalleryIndex(int index) const {
+  return m_images[(m_galleryStartIndex + (index)) % m_images.size()];
 }
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onEvent(const SDL_Event &event) {
   if (event.type == SDL_MOUSEMOTION) {
     onMouseMotionEvent(event.motion);
-  }
-
-  else if (event.type == SDL_WINDOWEVENT) {
+  } else if (event.type == SDL_WINDOWEVENT) {
     onWindowEvent(event.window);
-  }
-
-  else if (event.type == SDL_KEYDOWN) {
+  } else if (event.type == SDL_KEYDOWN) {
     onKeyDown(event.key);
   } else if (event.type == SDL_MOUSEBUTTONUP) {
     onMouseButtonUp(event.button);
@@ -194,32 +211,41 @@ void Renderer::onEvent(const SDL_Event &event) {
 void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
   if (button.button == SDL_BUTTON_LEFT) {
     if (m_mode == DisplayMode::Gallery) {
-      if (m_cursorImageHoverIndex == m_previousImageHoverIndex) {
+      if (m_currentImageHoverIndex == m_previousImageHoverIndex) {
         m_clickCount++;
       }
-      if (m_clickCount == 1) {
+      if (m_clickCount == 1) { // image selected under cursor
         m_selected = true;
-      } else if (m_clickCount == 2) {
+      } else if (m_clickCount == 2) { // switch to image view mode.
+        // m_mode = DisplayMode::Image;
+        m_mode = DisplayMode::FromGalleryToImage;
         m_clickCount = 0;
         m_selected = false;
 
-        int idx = SCREEN_TO_GAL_IDX(button.x);
-        m_imageModeTex = TEX_FROM_GAL_IDX(idx);
+        int idx = getGalleryIndexFromCoord(button.x);
+        m_imageModeImage = getImageFromGalleryIndex(idx);
+        m_imageModeImage->maximize();
+        m_targetScale = m_imageModeImage->getScaleFactor();
+        m_imageModeImage->scale(0.0f);
+        // m_imageModeImage->maximize();
+        //        SDL_QueryTexture(m_imageModeImage->getTexture(), nullptr,
+        //        nullptr,
+        //                         &m_srcImageRect.w,
+        //                         &m_srcImageRect.h);
 
-        SDL_QueryTexture(m_imageModeTex, nullptr, nullptr, &m_srcImageRect.w,
-                         &m_srcImageRect.h);
-        m_srcImageRect.x = m_srcImageRect.y = 0;
-        m_destWindowRect.x = (m_winDims.x / 5) * 2;
-        m_destWindowRect.y = (m_winDims.y / 5) * 2;
-        m_destWindowRect.h = m_winDims.y / 5;
-        m_destWindowRect.w = m_winDims.x / 5;
-        m_imageScreenRatio = 0;
-        findLeastIncrement(m_destWindowRect.w, m_destWindowRect.h, true);
-        findLeastIncrement(m_srcImageRect.w, m_srcImageRect.h, false);
-        smoothIncrement();
+        //        m_srcImageRect.x = m_srcImageRect.y = 0;
+        //        m_destWindowRect.x = (m_winDims.x / 5) * 2;
+        //        m_destWindowRect.y = (m_winDims.y / 5) * 2;
+        //        m_destWindowRect.h = m_winDims.y / 5;
+        //        m_destWindowRect.w = m_winDims.x / 5;
+        //        m_imageScreenRatio = 0;
+        //        findLeastIncrement(m_destWindowRect.w, m_destWindowRect.h,
+        //        true);
+        //        findLeastIncrement(m_srcImageRect.w, m_srcImageRect.h, false);
+        //        smoothIncrement();
 
-        m_mode = DisplayMode::FromGalleryToImage;
-        std::cout << "Switch to Image View (image#: " << idx << ")\n";
+        //        m_mode = DisplayMode::FromGalleryToImage;
+        //        std::cout << "Switch to Image View (image#: " << idx << ")\n";
       }
     }
   } else if (button.button == SDL_BUTTON_RIGHT) {
@@ -233,25 +259,43 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onKeyDown(const SDL_KeyboardEvent &key) {
+
   switch (key.keysym.sym) {
   case SDLK_ESCAPE:
     if (m_mode == DisplayMode::Image) {
-      m_mode = DisplayMode::Gallery;
-    } else {
-      m_shouldQuit = true;
+      m_mode = DisplayMode::Gallery; // go back to gallery.
+    } else if (m_mode == DisplayMode::Gallery) {
+      m_shouldQuit = true; // if in gallery, then quit.
     }
     break;
   case SDLK_LEFT:
     // scroll images left one index, wraps if start index is < 0.
     if (m_mode == DisplayMode::Gallery) {
-      int i{m_galleryStartIndex - 1};
-      m_galleryStartIndex = i < 0 ? static_cast<int>(m_images.size()) - 1 : i;
+      shiftCandidates(-10);
+    } else if (m_mode == DisplayMode::Image) {
+      SDL_Point delta{10, 0};
+      m_imageModeImage->panBy(delta);
     }
     break;
   case SDLK_RIGHT:
     // scroll images right one index, wraps if start index > m_images.size()-1
     if (m_mode == DisplayMode::Gallery) {
-      m_galleryStartIndex = (m_galleryStartIndex + 1) % m_images.size();
+      shiftCandidates(10);
+    } else if (m_mode == DisplayMode::Image) {
+      SDL_Point delta{-10, 0};
+      m_imageModeImage->panBy(delta);
+    }
+    break;
+  case SDLK_UP:
+    if (m_mode == DisplayMode::Image) {
+      SDL_Point delta{0, 10};
+      m_imageModeImage->panBy(delta);
+    }
+    break;
+  case SDLK_DOWN:
+    if (m_mode == DisplayMode::Image) {
+      SDL_Point delta{0, -10};
+      m_imageModeImage->panBy(delta);
     }
     break;
   case SDLK_f:
@@ -259,6 +303,19 @@ void Renderer::onKeyDown(const SDL_KeyboardEvent &key) {
     break;
   case SDLK_k:
     m_useKinectForCursorPos = !m_useKinectForCursorPos;
+    break;
+  case SDLK_z:
+    if (m_mode == DisplayMode::Image) {
+      float currentScaleFactor = m_imageModeImage->getScaleFactor() - 0.01f;
+      m_imageModeImage->scale(currentScaleFactor);
+    }
+    break;
+  case SDLK_a:
+    if (m_mode == DisplayMode::Image) {
+      float currentScaleFactor = m_imageModeImage->getScaleFactor() + 0.01f;
+      m_imageModeImage->scale(currentScaleFactor);
+    }
+    break;
   }
 }
 
@@ -269,20 +326,24 @@ void Renderer::onWindowEvent(const SDL_WindowEvent &window) {
   case SDL_WINDOWEVENT_SIZE_CHANGED:
     m_winDims.x = window.data1;
     m_winDims.y = window.data2;
-    m_cursDims.x = static_cast<int>(m_winDims.y * 0.11f);
-    m_cursDims.y = static_cast<int>(m_winDims.y * 0.11f);
+
+    m_cursor->setSize(static_cast<int>(m_winDims.y * DEFAULT_CURSOR_SCALE),
+                      static_cast<int>(m_winDims.y * DEFAULT_CURSOR_SCALE));
+
+    if (m_mode == DisplayMode::Image) {
+      m_imageModeImage->maximize();
+    }
+
     break;
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent &motion) {
-  m_cursPos.x = motion.x;
-  m_cursPos.y = motion.y;
-  m_previousImageHoverIndex = m_cursorImageHoverIndex;
-  m_cursorImageHoverIndex = SCREEN_TO_GAL_IDX(
-      motion.x); // motion.x / (m_winDims.x / NUM_IMAGES_TO_DRAW);
-  if (m_previousImageHoverIndex != m_cursorImageHoverIndex) {
+  m_cursor->setPos(motion.x, motion.y);
+  m_previousImageHoverIndex = m_currentImageHoverIndex;
+  m_currentImageHoverIndex = getGalleryIndexFromCoord(motion.x);
+  if (m_previousImageHoverIndex != m_currentImageHoverIndex) {
     m_clickCount = 0;
     m_selected = false;
   }
@@ -295,137 +356,154 @@ void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
     if (event.direction == SDL_MOUSEWHEEL_FLIPPED) {
       scrollDeg *= -1;
     }
-    if (scrollDeg < 0) { // scroll backward - zoom out
-      if (m_imageScreenRatio <= 0) {
-        m_destWindowRect.h -= m_windowHeightLeastIncrement * 2;
-        m_destWindowRect.w -= m_windowWidthLeastIncrement * 2;
-        m_destWindowRect.y += m_windowHeightLeastIncrement;
-        m_destWindowRect.x += m_windowWidthLeastIncrement;
-        if (m_destWindowRect.w <= (m_winDims.x / 5)) {
-          m_mode = DisplayMode::Gallery;
-          std::cout << "Switch to Gallery View"
-                    << "\n";
-        }
-      } else {
-        m_srcImageRect.h += m_imageHeightLeastIncrement * 2;
-        m_srcImageRect.w += m_imageWidthLeastIncrement * 2;
-        m_srcImageRect.y -= m_imageHeightLeastIncrement;
-        m_srcImageRect.x -= m_imageWidthLeastIncrement;
-      }
-      m_imageScreenRatio--;
-    } else if (scrollDeg > 0) { // scroll forward - zoom in
-      if (m_imageScreenRatio >= 0) {
-        m_srcImageRect.h -= m_imageHeightLeastIncrement * 2;
-        m_srcImageRect.w -= m_imageWidthLeastIncrement * 2;
-        m_srcImageRect.y += m_imageHeightLeastIncrement;
-        m_srcImageRect.x += m_imageWidthLeastIncrement;
-      } else {
-        m_destWindowRect.h += m_windowHeightLeastIncrement * 2;
-        m_destWindowRect.w += m_windowWidthLeastIncrement * 2;
-        m_destWindowRect.y -= m_windowHeightLeastIncrement;
-        m_destWindowRect.x -= m_windowWidthLeastIncrement;
-      }
-      m_imageScreenRatio++;
-    }
+    //    m_imageModeImage->scale(1 + (scrollDeg * 0.5));
+    //    if (scrollDeg < 0) { // scroll backward - zoom out
+    //      if (m_imageScreenRatio <= 0) {
+    //        m_destWindowRect.h -= m_windowHeightLeastIncrement * 2;
+    //        m_destWindowRect.w -= m_windowWidthLeastIncrement * 2;
+    //        m_destWindowRect.y += m_windowHeightLeastIncrement;
+    //        m_destWindowRect.x += m_windowWidthLeastIncrement;
+    //        if (m_destWindowRect.w <= (m_winDims.x / 5)) {
+    //          m_mode = DisplayMode::Gallery;
+    //          std::cout << "Switch to Gallery View"
+    //              << "\n";
+    //        }
+    //      } else {
+    //        m_srcImageRect.h += m_imageHeightLeastIncrement * 2;
+    //        m_srcImageRect.w += m_imageWidthLeastIncrement * 2;
+    //        m_srcImageRect.y -= m_imageHeightLeastIncrement;
+    //        m_srcImageRect.x -= m_imageWidthLeastIncrement;
+    //      }
+    //      m_imageScreenRatio--;
+    //    } else if (scrollDeg > 0) { // scroll forward - zoom in
+    //      if (m_imageScreenRatio >= 0) {
+    //        m_srcImageRect.h -= m_imageHeightLeastIncrement * 2;
+    //        m_srcImageRect.w -= m_imageWidthLeastIncrement * 2;
+    //        m_srcImageRect.y += m_imageHeightLeastIncrement;
+    //        m_srcImageRect.x += m_imageWidthLeastIncrement;
+    //      } else {
+    //        m_destWindowRect.h += m_windowHeightLeastIncrement * 2;
+    //        m_destWindowRect.w += m_windowWidthLeastIncrement * 2;
+    //        m_destWindowRect.y -= m_windowHeightLeastIncrement;
+    //        m_destWindowRect.x -= m_windowWidthLeastIncrement;
+    //      }
+    //      m_imageScreenRatio++;
+    //    }
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::renderGalleryMode() const { renderImageTextures(); }
+void Renderer::renderGalleryMode() {
+  renderImageTextures();
+  renderThumbsTexture();
+}
 
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::renderTransactionMode() {
-  if (m_destWindowRect.x >= 0 + m_windowWidthLeastIncrement &&
-      m_destWindowRect.y >= 0 + m_windowHeightLeastIncrement &&
-      m_destWindowRect.w <= m_winDims.x - m_windowWidthLeastIncrement * 2 &&
-      m_destWindowRect.h <= m_winDims.y - m_windowHeightLeastIncrement * 2) {
-    m_destWindowRect.x -= m_windowWidthLeastIncrement;
-    m_destWindowRect.y -= m_windowHeightLeastIncrement;
-    m_destWindowRect.w += m_windowWidthLeastIncrement * 2;
-    m_destWindowRect.h += m_windowHeightLeastIncrement * 2;
-  } else {
+void Renderer::renderTransitionMode(float secondsSinceLastUpdate,
+                                    float targetScale) {
+  float zoom_speed = 0.001f;
+
+  float scale = m_imageModeImage->getScaleFactor() +
+                (zoom_speed * secondsSinceLastUpdate);
+  if (scale > targetScale) {
+    m_imageModeImage->scale(targetScale);
+    m_imageModeImage->setBaseScaleFactor(targetScale);
     m_mode = DisplayMode::Image;
-    m_destWindowRect.x = m_destWindowRect.y = 0;
-    m_destWindowRect.w = m_winDims.x;
-    m_destWindowRect.h = m_winDims.y;
+    return;
   }
-  SDL_RenderCopy(m_renderer, m_imageModeTex, &m_srcImageRect,
-                 &m_destWindowRect);
+
+  m_imageModeImage->scale(scale);
+  m_imageModeImage->draw();
 }
 
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::renderImageViewMode() const {
-  SDL_RenderCopy(m_renderer, m_imageModeTex, &m_srcImageRect,
-                 &m_destWindowRect);
-}
+void Renderer::renderImageViewMode() const { m_imageModeImage->draw(); }
 
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::renderCursorTexture() const {
-  SDL_Rect dest;
-  dest.x = m_cursPos.x - (m_cursDims.x / 2);
-  dest.y = m_cursPos.y - (m_cursDims.y / 2);
-  dest.w = m_cursDims.x;
-  dest.h = m_cursDims.y;
-
-  SDL_RenderCopy(m_renderer, m_cursTex, nullptr, &dest);
-}
+void Renderer::renderCursorTexture() const { m_cursor->draw(); }
 
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::renderImageTextures() const {
-  const int imgWidth{m_winDims.x / NUM_IMAGES_TO_DRAW};
-  const int halfWinY{m_winDims.y / 2};
+void Renderer::renderImageTextures() {
+  const int imgWidth{m_winDims.x / 5};
 
-  int xpos{0};
+  int imgXPos = m_imageStartingPos;
 
-  int idx{0};
-  while (idx < NUM_IMAGES_TO_DRAW) {
-    SDL_Texture *tex{TEX_FROM_GAL_IDX(idx)};
-    int texWidth, texHeight;
-    SDL_QueryTexture(tex, nullptr, nullptr, &texWidth, &texHeight);
-    float aspect_ratio{texWidth / static_cast<float>(texHeight)};
+  for (int i = 0; i < NUM_IMAGES_TO_DRAW; ++i, imgXPos += imgWidth) {
+    Image *img = getImageFromGalleryIndex(i);
 
-    SDL_Rect dest;
-    dest.w = imgWidth;
-    dest.h = static_cast<int>(
-        imgWidth /
-        aspect_ratio); // aspect_ratio = w / h --> h = w / aspect_ratio
-    dest.x = xpos;
-    dest.y = halfWinY - (dest.h / 2); // center image vertically
+    updateImageForGalleryView(img, imgXPos, imgWidth);
 
-    SDL_RenderCopy(m_renderer, tex, nullptr, &dest);
+    img->draw();
 
-    if (idx == m_cursorImageHoverIndex && m_selected) {
-      renderImageSelectionRectangle(dest);
+    if (m_selected && i == m_currentImageHoverIndex) {
+      renderRectangle(img->getBounds(), 255, 0, 0);
     }
-
-    idx += 1;
-    xpos += imgWidth;
   }
 }
 
-////////////////////////////////////////////////////////////////////////////
-// void
-// Renderer::renderSingleTexture(SDL_Texture* tex, int x, int y, int w, int h)
-// const
-//{
-//  assert(tex != nullptr);
-//
-//  SDL_Rect dest;
-//  dest.x = x;
-//  dest.y = y;
-//  dest.w = w;
-//  dest.h = h;
-//  SDL_RenderCopy(m_renderer, tex, nullptr, &dest);
-//}
+void Renderer::renderThumbsTexture() {
+  const int thumbWidth{m_winDims.x / (5 * static_cast<int>(m_thumbs.size()))};
+  const int imgWidth{m_winDims.x / 5};
+  int thumbXpos = 2 * m_winDims.x / 5;
+  SDL_Rect thumbBox;
+  thumbBox.h = 0;
+  thumbBox.x = thumbXpos;
+  thumbBox.w = 5 * thumbWidth;
+  for (auto thumb : m_thumbs) {
+    updateThumbForGalleryView(thumb, thumbXpos, thumbWidth);
+    thumbXpos += thumbWidth;
+    thumb->draw();
+    if (thumbBox.h < thumb->getBounds().h)
+      thumbBox.h = thumb->getBounds().h;
+  }
+  thumbBox.h *= 1.2;
+  thumbBox.y = (m_winDims.y * 4 / 5) - (thumbBox.h / 2);
+  thumbBox.x += thumbWidth * m_galleryStartIndex -
+                (m_imageStartingPos * thumbWidth / imgWidth);
+  renderRectangle(thumbBox, 0, 255, 255);
+}
 
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::renderImageSelectionRectangle(const SDL_Rect &dest) const {
+void Renderer::renderRectangle(const SDL_Rect &dest, Uint8 R, Uint8 G,
+                               Uint8 B) const {
   // save the clear color so it can be restored after DrawRect()
   Uint8 r, g, b, a;
   SDL_GetRenderDrawColor(m_renderer, &r, &g, &b, &a);
-  SDL_SetRenderDrawColor(m_renderer, 255, 0, 0, 0);
+  SDL_SetRenderDrawColor(m_renderer, R, G, B, 0);
   SDL_RenderDrawRect(m_renderer, &dest);
   SDL_SetRenderDrawColor(m_renderer, r, g, b, a);
+}
+
+////////////////////////////////////////////////////////////////////////////
+void Renderer::updateImageForGalleryView(Image *img, int imgXPos,
+                                         int imgWidth) {
+
+  float aspect_ratio{img->getTexWidth() /
+                     static_cast<float>(img->getTexHeight())};
+
+  SDL_Rect dest;
+  dest.w = imgWidth;
+  // aspect_ratio = w / h --> h = w / aspect_ratio
+  dest.h = static_cast<int>(imgWidth / aspect_ratio);
+  dest.x = imgXPos;
+  dest.y = (m_winDims.y / 2) - (dest.h / 2); // center image vertically
+
+  img->setBounds(dest);
+}
+
+void Renderer::updateThumbForGalleryView(Image *thumb, int thumbXPos,
+                                         int thumbWidth) {
+  float aspect_ratio{thumb->getTexWidth() /
+                     static_cast<float>(thumb->getTexHeight())};
+
+  SDL_Rect dest;
+  dest.w = thumbWidth;
+  // aspect_ratio = w / h --> h = w / aspect_ratio
+  dest.h = static_cast<int>(thumbWidth / aspect_ratio);
+  dest.x = thumbXPos;
+  dest.y = (m_winDims.y * 4 / 5) - (dest.h / 2);
+
+  thumb->setBounds(dest);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -448,20 +526,6 @@ void Renderer::toggleFullScreen() {
       std::cerr << "Switch to windowed mode failed: " << SDL_GetError() << "\n";
     }
   }
-}
-
-////////////////////////////////////////////////////////////////////////////
-void Renderer::loadSingleTexture(const std::string &path) {
-  SDL_Texture *tex{IMG_LoadTexture(m_renderer, path.c_str())};
-
-  if (tex == nullptr) {
-    std::cerr << "Could not load image texture: " << SDL_GetError()
-              << std::endl;
-    return;
-  }
-
-  std::cout << "Loaded image: " << path << "\n";
-  m_images.push_back(tex);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -499,10 +563,10 @@ void Renderer::printEvent(const SDL_Event *event) const {
       printf("Window %d restored\n", event->window.windowID);
       break;
     case SDL_WINDOWEVENT_ENTER:
-      printf("Mouse entered window %d\n", event->window.windowID);
+      printf("Mouse entered sdl_window %d\n", event->window.windowID);
       break;
     case SDL_WINDOWEVENT_LEAVE:
-      printf("Mouse left window %d\n", event->window.windowID);
+      printf("Mouse left sdl_window %d\n", event->window.windowID);
       break;
     case SDL_WINDOWEVENT_FOCUS_GAINED:
       printf("Window %d gained keyboard focus\n", event->window.windowID);
@@ -521,42 +585,28 @@ void Renderer::printEvent(const SDL_Event *event) const {
   }
 }
 
-void Renderer::findLeastIncrement(int width, int height, bool isWindow) {
-  int a = width, b = height, c;
-  if (a < b) {
-    c = b % a;
-    while (c != 0) {
-      b = a;
-      a = c;
-      c = b % a;
+////////////////////////////////////////////////////////////////////////////
+void Renderer::shiftCandidates(int dx) {
+  const int imgWidth{m_winDims.x / 5};
+  if (dx < 0) { // shift to left to bring up new candidate from right
+    if (m_galleryStartIndex + 5 < m_images.size()) {
+      if (m_imageStartingPos + dx + imgWidth < 0) {
+        m_galleryStartIndex++;
+        m_imageStartingPos = 0;
+      } else {
+        m_imageStartingPos += dx;
+      }
     }
-  } else {
-    c = a % b;
-    while (c != 0) {
-      a = b;
-      b = c;
-      c = a % b;
+  } else { // shift to right to bring up new candidate from left
+    if (!(m_galleryStartIndex == 0 && m_imageStartingPos == 0)) {
+      if (m_imageStartingPos == 0) {
+        m_galleryStartIndex--;
+        m_imageStartingPos = dx - imgWidth;
+      } else {
+        m_imageStartingPos += dx;
+        if (m_imageStartingPos > 0)
+          m_imageStartingPos = 0;
+      }
     }
-  }
-  if (isWindow) {
-    m_windowWidthLeastIncrement = width / b;
-    m_windowHeightLeastIncrement = height / b;
-  } else {
-    m_imageWidthLeastIncrement = width / b;
-    m_imageHeightLeastIncrement = height / b;
-  }
-}
-
-void Renderer::smoothIncrement() {
-  if (m_windowHeightLeastIncrement > m_imageHeightLeastIncrement) {
-    m_imageWidthLeastIncrement *=
-        m_windowHeightLeastIncrement / m_imageHeightLeastIncrement;
-    m_imageHeightLeastIncrement *=
-        m_windowHeightLeastIncrement / m_imageHeightLeastIncrement;
-  } else {
-    m_windowWidthLeastIncrement *=
-        m_imageHeightLeastIncrement / m_windowHeightLeastIncrement;
-    m_windowHeightLeastIncrement *=
-        m_imageHeightLeastIncrement / m_windowHeightLeastIncrement;
   }
 }
