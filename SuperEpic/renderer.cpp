@@ -156,7 +156,6 @@ void Renderer::loop() {
     }
 #endif
 
-
     SDL_RenderClear(m_renderer);
 
     switch (m_mode) {
@@ -250,6 +249,7 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
   } else if (button.button == SDL_BUTTON_RIGHT) {
     if (m_mode == DisplayMode::Image) {
       m_mode = DisplayMode::Gallery;
+      KinectSensor::mode = DisplayMode::Gallery;
       std::cout << "Switch to Gallery View"
                 << "\n";
     }
@@ -263,6 +263,7 @@ void Renderer::onKeyDown(const SDL_KeyboardEvent &key) {
   case SDLK_ESCAPE:
     if (m_mode == DisplayMode::Image) {
       m_mode = DisplayMode::Gallery; // go back to gallery.
+      KinectSensor::mode = DisplayMode::Gallery;
     } else if (m_mode == DisplayMode::Gallery) {
       m_shouldQuit = true; // if in gallery, then quit.
     }
@@ -408,6 +409,7 @@ void Renderer::renderTransitionMode(float secondsSinceLastUpdate,
     m_imageModeImage->scale(targetScale);
     m_imageModeImage->setBaseScaleFactor(targetScale);
     m_mode = DisplayMode::Image;
+    KinectSensor::mode = DisplayMode::Image;
     return;
   }
 
