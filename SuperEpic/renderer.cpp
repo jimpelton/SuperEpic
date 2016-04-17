@@ -156,7 +156,6 @@ void Renderer::loop() {
     }
 #endif
 
-	std::cout << KinectSensor::getGestureType() << std::endl;
 
     SDL_RenderClear(m_renderer);
 
