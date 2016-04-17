@@ -88,6 +88,7 @@ public:
 	static void updateHandPosition();
 	static void mapHandToCursor(float * handPosition, int screenWidth, int screenHeight, int * cursor);
 	static float* handCoords;
+	static bool KeepUpdatingHandPos;
 
 
 	/* Gesture builder functions */

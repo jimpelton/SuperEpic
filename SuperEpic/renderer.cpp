@@ -143,6 +143,8 @@ void Renderer::loop() {
                                     reinterpret_cast<int *>(&m_cursPos));
     }
 
+	std::cout << KinectSensor::getGestureType() << std::endl;
+
     SDL_RenderClear(m_renderer);
 
     switch (m_mode) {
