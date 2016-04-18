@@ -401,6 +401,16 @@ void Renderer::onGesture() {
   std::string gesture = KinectSensor::getGestureType();
   if (gesture == "NO_GESTURE")
     onNoGesture();
+  else if (gesture == "SWAP_CANDIDATES")
+    onSwapCandidate();
+  else if (gesture == "SELECT")
+    onSelect();
+  else if (gesture == "PANNING")
+    onPanning();
+  else if (gesture == "ZOOM_IN" || gesture == "ZOOM_OUT")
+    onZoom();
+  else if (gesture == "SELECTION_PROGRESS")
+    onSelectionProgress();
 }
 
 void Renderer::onNoGesture() {
@@ -415,6 +425,20 @@ void Renderer::onNoGesture() {
     m_selected = false;
   }
 }
+
+void Renderer::onSwapCandidate() {
+  SDL_Point pos;
+  KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
+                                m_winDims.y, reinterpret_cast<int *>(&pos));
+}
+
+void Renderer::onSelect() {}
+
+void Renderer::onPanning() {}
+
+void Renderer::onZoom() {}
+
+void Renderer::onSelectionProgress() {}
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderGalleryMode() {
