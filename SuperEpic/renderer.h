@@ -52,6 +52,9 @@ private:
   void onWindowEvent(const SDL_WindowEvent &event);
   void onMouseMotionEvent(const SDL_MouseMotionEvent &event);
   void onMouseWheelEvent(const SDL_MouseWheelEvent &event);
+  /// \brief Handle gestures
+  void onGesture();
+  void onNoGesture();
   /// \brief Render 5 images (thumbnails) in gallery mode.
   void renderGalleryMode();
   /// \brief Render transaction from gallery mode to image mode

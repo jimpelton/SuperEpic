@@ -139,20 +139,25 @@ void Renderer::loop() {
   while (!m_shouldQuit) {
     since = SDL_GetTicks() * 1e-3f - then; // seconds
 
-    // Pop events from the SDL event queue.
-    // When we start using the kinect to control, this may get replaced, or
-    // this is probably were the kinect gesture events will get checked.
+// Pop events from the SDL event queue.
+// When we start using the kinect to control, this may get replaced, or
+// this is probably were the kinect gesture events will get checked.
+
+#ifdef WIN32
+    if (m_useKinectForCursorPos) {
+      onGesture();
+    } else {
+      SDL_Event event;
+      while (SDL_PollEvent(&event) != 0) {
+        printEvent(&event);
+        onEvent(event);
+      }
+    }
+#else
     SDL_Event event;
     while (SDL_PollEvent(&event) != 0) {
       printEvent(&event);
       onEvent(event);
-    }
-#ifdef WIN32
-    if (m_useKinectForCursorPos) {
-      SDL_Point pos;
-      KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
-                                    m_winDims.y, reinterpret_cast<int *>(&pos));
-      m_cursor->setPos(pos.x, pos.y);
     }
 #endif
 
@@ -389,6 +394,25 @@ void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
     //      }
     //      m_imageScreenRatio++;
     //    }
+  }
+}
+
+void Renderer::onGesture() {
+  std::string gesture = KinectSensor::getGestureType();
+  if (gesture == "NO_GESTURE")
+    onNoGesture();
+}
+
+void Renderer::onNoGesture() {
+  SDL_Point pos;
+  KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
+                                m_winDims.y, reinterpret_cast<int *>(&pos));
+  m_cursor->setPos(pos.x, pos.y);
+  m_previousImageHoverIndex = m_currentImageHoverIndex;
+  m_currentImageHoverIndex = getGalleryIndexFromCoord(pos.x);
+  if (m_previousImageHoverIndex != m_currentImageHoverIndex) {
+    m_clickCount = 0;
+    m_selected = false;
   }
 }
 
