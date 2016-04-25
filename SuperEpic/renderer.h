@@ -132,7 +132,6 @@ private:
   int m_willingToQuit;
 
   int m_currentImageSelectIndex;  ///< The image index that the user select
-  int m_previousImageSelectIndex; ///< The image index that the user select
 };
 
 #endif // ! epic_renderer_h__

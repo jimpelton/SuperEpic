@@ -385,8 +385,7 @@ void Renderer::onNoGesture() {
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onSelect() {
   m_currentImageSelectIndex = m_currentImageHoverIndex;
-  if (m_currentImageSelectIndex == m_previousImageSelectIndex)
-    m_selected = true;
+  m_selected = true;
 }
 
 void Renderer::onPanning() {
@@ -422,10 +421,7 @@ void Renderer::onZoom(int factor) {
   }
 }
 
-void Renderer::onSelectionProgress() {
-  if (std::time(nullptr) - KinectSensor::timer > THRESHOLD_TIMER / 2)
-    m_previousImageSelectIndex = m_currentImageHoverIndex;
-}
+void Renderer::onSelectionProgress() { m_selected = false; }
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderGalleryMode() {
