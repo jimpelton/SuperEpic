@@ -23,7 +23,7 @@ const int NUM_IMAGES_TO_DRAW{6};
 
 const char *DEFAULT_CURSOR_TEXTURE_PATH{"../res/crosshair.png"};
 
-const int DEFAULT_WILLING_TO_QUIT{20};
+const int DEFAULT_WILLING_TO_QUIT{40};
 } // namespace
 
 bool Renderer::m_shouldQuit = false;
@@ -421,7 +421,9 @@ void Renderer::onZoom(int factor) {
   }
 }
 
-void Renderer::onSelectionProgress() { m_selected = false; }
+void Renderer::onSelectionProgress() {
+	if(std::time(nullptr) - KinectSensor::timer > 0.5)
+	m_selected = false; }
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderGalleryMode() {
@@ -545,8 +547,7 @@ void Renderer::prepareForGalleryToImageTransition() {
   m_clickCount = 0;
   m_selected = false;
   m_willingToQuit = 0;
-  int mouseX{m_cursor->getCursorImage()->getCenter().x};
-  int idx{getGalleryIndexFromCoord(mouseX)};
+  int idx = m_useKinectForCursorPos ? m_currentImageSelectIndex : m_currentImageHoverIndex;
   m_imageModeImage = getImageFromGalleryIndex(idx);
   m_imageModeImage->maximize();
   m_targetScale = m_imageModeImage->getScaleFactor();
