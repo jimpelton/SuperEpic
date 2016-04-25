@@ -58,7 +58,7 @@ private:
   void onNoGesture();
   void onSelect();
   void onPanning();
-  void onZoom();
+  void onZoom(int factor);
   void onSelectionProgress();
   /// \brief Update renderer state for making the transition to Image mode.
   void prepareForGalleryToImageTransition();
@@ -127,6 +127,8 @@ private:
   bool m_selected;  ///< If user choose a candidate image.
 
   int m_imageStartingPos;
+
+  int m_willingToQuit;
 };
 
 #endif // ! epic_renderer_h__

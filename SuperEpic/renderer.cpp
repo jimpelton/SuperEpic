@@ -23,6 +23,7 @@ const int NUM_IMAGES_TO_DRAW{6};
 
 const char *DEFAULT_CURSOR_TEXTURE_PATH{"../res/crosshair.png"};
 
+const int DEFAULT_WILLING_TO_QUIT{20};
 } // namespace
 
 bool Renderer::m_shouldQuit = false;
@@ -38,8 +39,9 @@ Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
       m_winPos{winX, winY}, m_cursorSpeed{DEFAULT_CURSOR_SPEED},
       m_cursor{new Cursor()}, m_mode{DisplayMode::Gallery},
       m_galleryStartIndex{0}, m_images{}, m_imageModeImage{nullptr},
-      m_fullScreen{true}, m_useKinectForCursorPos{false}, m_imageStartingPos{0},
-      m_clickCount{0}, m_selected{false} //  , m_srcImageRect{ 0, 0, 0, 0 }
+      m_fullScreen{false}, m_useKinectForCursorPos{false},
+      m_imageStartingPos{0}, m_clickCount{0}, m_selected{false},
+      m_willingToQuit{0} //  , m_srcImageRect{ 0, 0, 0, 0 }
 //  , m_destWindowRect{ 0, 0, 0, 0 }
 //  , m_imageScreenRatio{ 0 }
 //  , m_windowHeightLeastIncrement{ 0 }
@@ -129,7 +131,7 @@ int Renderer::init() {
 
   SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2); // anti-aliasing
   SDL_ShowCursor(0);                                 // don't show mouse arrow.
-
+  toggleFullScreen();
   return 0;
 }
 
@@ -147,6 +149,12 @@ void Renderer::loop() {
 #ifdef WIN32
     if (m_useKinectForCursorPos) {
       onGesture();
+      SDL_Event event;
+      while (SDL_PollEvent(&event) != 0) {
+        if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_k) {
+          m_useKinectForCursorPos = !m_useKinectForCursorPos;
+        }
+      }
     } else {
       SDL_Event event;
       while (SDL_PollEvent(&event) != 0) {
@@ -294,6 +302,8 @@ void Renderer::onKeyDown(const SDL_KeyboardEvent &key) {
     if (m_mode == DisplayMode::Image) {
       float currentScaleFactor = m_imageModeImage->getScaleFactor() - 0.01f;
       m_imageModeImage->scale(currentScaleFactor);
+      if (currentScaleFactor <= m_imageModeImage->getBaseScaleFactor() / 5)
+        prepareForGalleryViewMode();
     }
     break;
   case SDLK_a:
@@ -354,8 +364,10 @@ void Renderer::onGesture() {
     onSelect();
   else if (gesture == "PANNING")
     onPanning();
-  else if (gesture == "ZOOM_IN" || gesture == "ZOOM_OUT")
-    onZoom();
+  else if (gesture == "ZOOM_IN")
+    onZoom(1);
+  else if (gesture == "ZOOM_OUT")
+    onZoom(-1);
   else if (gesture == "SELECTION_PROGRESS")
     onSelectionProgress();
 }
@@ -378,16 +390,30 @@ void Renderer::onNoGesture() {
 void Renderer::onSelect() {}
 
 void Renderer::onPanning() {
-	if (m_mode == DisplayMode::Gallery) {
-		shiftCandidates(KinectSensor::panning_delta_x * 30);
-	}
-	else if (m_mode == DisplayMode::Image) {
-		SDL_Point delta{ KinectSensor::panning_delta_x * 30, KinectSensor::panning_delta_y * 30 };
-		m_imageModeImage->panBy(delta);
-	}
+  if (m_mode == DisplayMode::Gallery) {
+    shiftCandidates(KinectSensor::panning_delta_x * 30);
+  } else if (m_mode == DisplayMode::Image) {
+    SDL_Point delta{KinectSensor::panning_delta_x * 30,
+                    KinectSensor::panning_delta_y * 30};
+    m_imageModeImage->panBy(delta);
+  }
 }
 
-void Renderer::onZoom() {}
+void Renderer::onZoom(int factor) {
+  if (m_mode == DisplayMode::Gallery && factor < 0) {
+    m_willingToQuit -= factor;
+    if (m_willingToQuit >= DEFAULT_WILLING_TO_QUIT) {
+      m_shouldQuit = true;
+    }
+  } else if (m_mode == DisplayMode::Image) {
+    float currentScaleFactor =
+        m_imageModeImage->getScaleFactor() + 0.01f * factor;
+    m_imageModeImage->scale(currentScaleFactor);
+    if (currentScaleFactor <= m_imageModeImage->getBaseScaleFactor() / 5) {
+      prepareForGalleryViewMode();
+    }
+  }
+}
 
 void Renderer::onSelectionProgress() {}
 

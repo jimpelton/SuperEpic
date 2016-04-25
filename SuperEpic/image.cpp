@@ -190,3 +190,5 @@ float Image::getScaleFactor() const { return m_scaleFactor; }
 void Image::setBaseScaleFactor(float baseScaleFactor) {
   m_baseScaleFactor = baseScaleFactor;
 }
+
+float Image::getBaseScaleFactor() const { return m_baseScaleFactor; }

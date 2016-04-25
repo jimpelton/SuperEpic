@@ -82,6 +82,7 @@ public:
   float getScaleFactor() const;
 
   void setBaseScaleFactor(float baseScaleFactor);
+  float getBaseScaleFactor() const;
 
 private:
   Image();
