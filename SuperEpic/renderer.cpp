@@ -378,6 +378,8 @@ void Renderer::onNoGesture() {
   KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
                                 m_winDims.y, reinterpret_cast<int *>(&pos));
   m_cursor->setPos(pos.x, pos.y);
+  m_previousImageHoverIndex = m_currentImageHoverIndex;
+  m_currentImageHoverIndex = getGalleryIndexFromCoord(pos.x);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -405,8 +407,11 @@ void Renderer::onZoom(int factor) {
         m_shouldQuit = true;
       }
     } else if (m_selected) {
+      m_willingToQuit = 0;
       prepareForGalleryToImageTransition();
-    }
+    } else
+      m_willingToQuit = 0;
+
   } else if (m_mode == DisplayMode::Image) {
     float currentScaleFactor =
         m_imageModeImage->getScaleFactor() + 0.01f * factor;
@@ -543,7 +548,7 @@ void Renderer::prepareForGalleryToImageTransition() {
   m_mode = DisplayMode::FromGalleryToImage;
   m_clickCount = 0;
   m_selected = false;
-
+  m_willingToQuit = 0;
   int mouseX{m_cursor->getCursorImage()->getCenter().x};
   int idx{getGalleryIndexFromCoord(mouseX)};
   m_imageModeImage = getImageFromGalleryIndex(idx);
