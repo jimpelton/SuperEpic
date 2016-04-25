@@ -43,6 +43,7 @@ public:
 
   void cursorSpeed(float s) { m_cursorSpeed = s; }
   float cursorSpeed() const { return m_cursorSpeed; }
+  static bool m_shouldQuit;            ///< If the main loop should exit.
 
 private:
   /// \brief Handle SDL events! :)
@@ -110,7 +111,6 @@ private:
   float m_targetScale;
 
   bool m_fullScreen;            ///< If in fullscreen or not.
-  bool m_shouldQuit;            ///< If the main loop should exit.
   bool m_useKinectForCursorPos; ///< If the kinect sensor should override mouse
                                 /// for cursor position.
 

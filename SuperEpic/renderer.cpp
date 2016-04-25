@@ -25,6 +25,8 @@ const char *DEFAULT_CURSOR_TEXTURE_PATH{"../res/crosshair.png"};
 
 } // namespace
 
+bool Renderer::m_shouldQuit = false;
+
 ////////////////////////////////////////////////////////////////////////////
 Renderer::Renderer()
     : Renderer(DEFAULT_WIN_WIDTH, DEFAULT_WIN_HEIGHT, DEFAULT_WIN_X,
@@ -36,7 +38,7 @@ Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
       m_winPos{winX, winY}, m_cursorSpeed{DEFAULT_CURSOR_SPEED},
       m_cursor{new Cursor()}, m_mode{DisplayMode::Gallery},
       m_galleryStartIndex{0}, m_images{}, m_imageModeImage{nullptr},
-      m_fullScreen{false}, m_shouldQuit{false}, m_useKinectForCursorPos{false},
+      m_fullScreen{false},  m_useKinectForCursorPos{false},
       m_imageStartingPos{0}, m_clickCount{0},
       m_selected{false} //  , m_srcImageRect{ 0, 0, 0, 0 }
 //  , m_destWindowRect{ 0, 0, 0, 0 }

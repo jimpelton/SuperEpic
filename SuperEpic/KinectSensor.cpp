@@ -156,6 +156,8 @@ void KinectSensor::updateHandPosition() {
   IBodyFrameReader *bodyreader = kinectSensor.getBodyFrameReader();
 
   while (1) {
+	  if (Renderer::m_shouldQuit)
+		  break;
     IBody *ppBodies[BODY_COUNT] = {0};
 
     // Get the frames //
