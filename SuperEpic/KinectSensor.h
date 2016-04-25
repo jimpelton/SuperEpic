@@ -3,6 +3,7 @@
 #include <Kinect.VisualGestureBuilder.h>
 #include <Kinect.h>
 #include <iostream>
+#include <list>
 #include <stdio.h>
 
 #include "renderer.h"
@@ -29,6 +30,8 @@
 #define ZOOM_OUT 5
 #define SELECTION_PROGRESS 6
 
+#define BUFFER_SIZE 10
+
 class KinectSensor {
 
 private:
@@ -45,6 +48,20 @@ private:
   IVisualGestureBuilderDatabase *pGestureDatabase;
 
   void error(std::string e, HRESULT hr);
+
+  static std::list<float> handPosXBuf, handPosYBuf, handPosZBuf;
+  static std::list<float> spinePosXBuf, spinePosYBuf, spinePosZBuf;
+
+  static void addHandJoint(Joint handJoint);
+  static void addSpineJoint(Joint spineJoint);
+
+  static float getHandJointPosX();
+  static float getHandJointPosY();
+  static float getHandJointPosZ();
+
+  static float getSpineJointPosX();
+  static float getSpineJointPosY();
+  static float getSpineJointPosZ();
 
 public:
   KinectSensor();

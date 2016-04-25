@@ -23,6 +23,84 @@ float KinectSensor::panning_delta_y = 0;
 
 float KinectSensor::zoom_delta = 0;
 
+void KinectSensor::addHandJoint(Joint handJoint) {
+  if (handPosXBuf.size() < BUFFER_SIZE) {
+    handPosXBuf.push_back(handJoint.Position.X);
+    handPosYBuf.push_back(handJoint.Position.Y);
+    handPosZBuf.push_back(handJoint.Position.Z);
+  } else {
+    handPosXBuf.pop_front();
+    handPosYBuf.pop_front();
+    handPosZBuf.pop_front();
+    handPosXBuf.push_back(handJoint.Position.X);
+    handPosYBuf.push_back(handJoint.Position.Y);
+    handPosZBuf.push_back(handJoint.Position.Z);
+  }
+}
+
+void KinectSensor::addSpineJoint(Joint spineJoint) {
+  if (spinePosXBuf.size() < BUFFER_SIZE) {
+    spinePosXBuf.push_back(spineJoint.Position.X);
+    spinePosYBuf.push_back(spineJoint.Position.Y);
+    spinePosZBuf.push_back(spineJoint.Position.Z);
+  } else {
+    spinePosXBuf.pop_front();
+    spinePosYBuf.pop_front();
+    spinePosZBuf.pop_front();
+    spinePosXBuf.push_back(spineJoint.Position.X);
+    spinePosYBuf.push_back(spineJoint.Position.Y);
+    spinePosZBuf.push_back(spineJoint.Position.Z);
+  }
+}
+
+float KinectSensor::getHandJointPosX() {
+  float avg = 0.0f;
+  for (std::list<float>::iterator i = handPosXBuf.begin();
+       i != handPosXBuf.end(); i++)
+    avg += (*i);
+  return avg / handPosXBuf.size();
+}
+
+float KinectSensor::getHandJointPosY() {
+  float avg = 0.0f;
+  for (std::list<float>::iterator i = handPosYBuf.begin();
+       i != handPosYBuf.end(); i++)
+    avg += (*i);
+  return avg / handPosYBuf.size();
+}
+
+float KinectSensor::getHandJointPosZ() {
+  float avg = 0.0f;
+  for (std::list<float>::iterator i = handPosZBuf.begin();
+       i != handPosZBuf.end(); i++)
+    avg += (*i);
+  return avg / handPosZBuf.size();
+}
+
+float KinectSensor::getSpineJointPosX() {
+  float avg = 0.0f;
+  for (std::list<float>::iterator i = spinePosXBuf.begin();
+       i != spinePosXBuf.end(); i++)
+    avg += (*i);
+  return avg / spinePosXBuf.size();
+}
+
+float KinectSensor::getSpineJointPosY() {
+  float avg = 0.0f;
+  for (std::list<float>::iterator i = spinePosYBuf.begin();
+       i != spinePosYBuf.end(); i++)
+    avg += (*i);
+  return avg / spinePosYBuf.size();
+}
+
+float KinectSensor::getSpineJointPosZ() {
+  float avg = 0.0f;
+  for (std::list<float>::iterator i = spinePosZBuf.begin();
+       i != spinePosZBuf.end(); i++)
+    avg += (*i);
+  return avg / spinePosZBuf.size();
+}
+
 KinectSensor::KinectSensor() {
   HRESULT hr;
 
@@ -156,8 +234,8 @@ void KinectSensor::updateHandPosition() {
   IBodyFrameReader *bodyreader = kinectSensor.getBodyFrameReader();
 
   while (1) {
-	  if (Renderer::m_shouldQuit)
-		  break;
+    if (Renderer::m_shouldQuit)
+      break;
     IBody *ppBodies[BODY_COUNT] = {0};
 
     // Get the frames //
@@ -185,11 +263,11 @@ void KinectSensor::updateHandPosition() {
         if (SUCCEEDED(hr) && bTracked) {
 
           hr = pBody->GetJoints(_countof(joints), joints);
-          Joint handJoint = joints[JointType_HandRight];
-          Joint spineJoint = joints[JointType_SpineBase];
-          handCoords[0] = handJoint.Position.X - spineJoint.Position.X;
-          handCoords[1] = handJoint.Position.Y - spineJoint.Position.Y;
-          handCoords[2] = handJoint.Position.Z - spineJoint.Position.Z;
+          addHandJoint(joints[JointType_HandRight]);
+          addSpineJoint(joints[JointType_SpineBase]);
+          handCoords[0] = getHandJointPosX() - getSpineJointPosX();
+          handCoords[1] = getHandJointPosY() - getSpineJointPosY();
+          handCoords[2] = getHandJointPosZ() - getSpineJointPosZ();
 
           updateGesture(pBody);
         }
@@ -226,8 +304,8 @@ void KinectSensor::updateGesture(IBody *pBody) {
         if (std::abs(hand_pos_x - handCoords[0]) >
             THRESHOLD_DISTANCE_SWAP_CANDIDATES) {
           gestureType = PANNING;
-		  hand_pos_x = handCoords[0];
-		  hand_pos_y = handCoords[1];
+          hand_pos_x = handCoords[0];
+          hand_pos_y = handCoords[1];
           timer = std::time(nullptr);
         } else if (std::time(nullptr) - timer > THRESHOLD_TIMER) {
           gestureType = SELECT;
@@ -236,38 +314,34 @@ void KinectSensor::updateGesture(IBody *pBody) {
         }
       } else {
         gestureType = PANNING;
-		panning_delta_x = hand_pos_x - handCoords[0];
-		panning_delta_y = hand_pos_y - handCoords[1];
+        panning_delta_x = hand_pos_x - handCoords[0];
+        panning_delta_y = hand_pos_y - handCoords[1];
       }
 
     } else {
       gestureType = PANNING;
-	  panning_delta_x = hand_pos_x - handCoords[0];
-	  panning_delta_y = hand_pos_y - handCoords[1];
+      panning_delta_x = hand_pos_x - handCoords[0];
+      panning_delta_y = hand_pos_y - handCoords[1];
       timer = std::time(nullptr);
       // Store hand position x
       hand_pos_x = handCoords[0];
-	  hand_pos_y = handCoords[1];
+      hand_pos_y = handCoords[1];
     }
 
-    //if (mode == Renderer::DisplayMode::Image) {
-      pBody->get_HandLeftState(&handState);
-      if (handState == HandState_Closed) {
-		  float d = getHandsDistance(pBody);
-		  if (d - hand_distance < 0) {
-			  gestureType = ZOOM_OUT;
-			  zoom_delta = getHandsDistance(pBody) - hand_distance;
-		  }
-		  else
-		  {
-			  gestureType = ZOOM_IN;
-			  zoom_delta = getHandsDistance(pBody) - hand_distance;
-			 
-		  }
-		  hand_distance = d;
-
-       }
-   // }
+    // if (mode == Renderer::DisplayMode::Image) {
+    pBody->get_HandLeftState(&handState);
+    if (handState == HandState_Closed) {
+      float d = getHandsDistance(pBody);
+      if (d - hand_distance < 0) {
+        gestureType = ZOOM_OUT;
+        zoom_delta = getHandsDistance(pBody) - hand_distance;
+      } else {
+        gestureType = ZOOM_IN;
+        zoom_delta = getHandsDistance(pBody) - hand_distance;
+      }
+      hand_distance = d;
+    }
+    // }
 
     // Set rightHand closed state true
     rightHand_closed = true;
@@ -275,20 +349,20 @@ void KinectSensor::updateGesture(IBody *pBody) {
     // Detect no gesture
     gestureType = NO_GESTURE;
     hand_pos_x = 0;
-	hand_pos_y = 0;
+    hand_pos_y = 0;
     rightHand_closed = false;
 
     if (mode == Renderer::DisplayMode::Image) {
       // ZOOM IN/OUT
       if (leftHand_closed) {
         leftHand_closed = false;
-		float d = getHandsDistance(pBody);
+        float d = getHandsDistance(pBody);
         if (d - hand_distance < 0) {
           gestureType = ZOOM_OUT;
-		  zoom_delta = getHandsDistance(pBody) - hand_distance;
+          zoom_delta = getHandsDistance(pBody) - hand_distance;
         } else {
           gestureType = ZOOM_IN;
-		  zoom_delta = getHandsDistance(pBody) - hand_distance;
+          zoom_delta = getHandsDistance(pBody) - hand_distance;
         }
       }
     }
@@ -296,15 +370,14 @@ void KinectSensor::updateGesture(IBody *pBody) {
 }
 
 float KinectSensor::getHandsDistance(IBody *pBody) {
-	Joint joints[JointType_Count];
-	int hr = pBody->GetJoints(_countof(joints), joints);
-	Joint rhj = joints[JointType_HandRight];
-	Joint lhj = joints[JointType_HandLeft];
-	float d = sqrt((rhj.Position.X - lhj.Position.X) *
-		(rhj.Position.X - lhj.Position.X) +
-		(rhj.Position.Y - lhj.Position.Y) *
-		(rhj.Position.Y - lhj.Position.Y));
-	return d;
+  Joint joints[JointType_Count];
+  int hr = pBody->GetJoints(_countof(joints), joints);
+  Joint rhj = joints[JointType_HandRight];
+  Joint lhj = joints[JointType_HandLeft];
+  float d = sqrt(
+      (rhj.Position.X - lhj.Position.X) * (rhj.Position.X - lhj.Position.X) +
+      (rhj.Position.Y - lhj.Position.Y) * (rhj.Position.Y - lhj.Position.Y));
+  return d;
 }
 
 std::string KinectSensor::getGestureType() {
