@@ -14,7 +14,7 @@
 #define FRAME_BODY 3
 
 #define VIRTUAL_RECTANGLE_CORNER_L_X 0.15
-#define VIRTUAL_RECTANGLE_CORNER_L_Y 0.55
+#define VIRTUAL_RECTANGLE_CORNER_L_Y 0.65
 
 #define VIRTUAL_RECTANGLE_CORNER_R_X 0.35
 #define VIRTUAL_RECTANGLE_CORNER_R_Y 0.25
@@ -49,19 +49,7 @@ private:
 
   void error(std::string e, HRESULT hr);
 
-  static std::list<float> handPosXBuf, handPosYBuf, handPosZBuf;
-  static std::list<float> spinePosXBuf, spinePosYBuf, spinePosZBuf;
-
-  static void addHandJoint(Joint handJoint);
-  static void addSpineJoint(Joint spineJoint);
-
-  static float getHandJointPosX();
-  static float getHandJointPosY();
-  static float getHandJointPosZ();
-
-  static float getSpineJointPosX();
-  static float getSpineJointPosY();
-  static float getSpineJointPosZ();
+  
 
 public:
   KinectSensor();
@@ -113,4 +101,18 @@ public:
   static std::string getGestureType();
   /* Releases any Kinect interface */
   template <class Interface> void SafeRelease(Interface *&pInterface); // TODO
+
+  static std::list<float> handPosXBuf, handPosYBuf, handPosZBuf;
+  static std::list<float> spinePosXBuf, spinePosYBuf, spinePosZBuf;
+
+  static void addHandJoint(Joint handJoint);
+  static void addSpineJoint(Joint spineJoint);
+
+  static float getHandJointPosX();
+  static float getHandJointPosY();
+  static float getHandJointPosZ();
+
+  static float getSpineJointPosX();
+  static float getSpineJointPosY();
+  static float getSpineJointPosZ();
 };

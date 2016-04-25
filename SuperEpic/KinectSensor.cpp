@@ -1,6 +1,7 @@
 #pragma once
 #include <Kinect.VisualGestureBuilder.h>
 #include <ctime>
+#include <list>
 #include <iostream>
 #include <stdio.h>
 
@@ -22,6 +23,9 @@ float KinectSensor::panning_delta_x = 0;
 float KinectSensor::panning_delta_y = 0;
 
 float KinectSensor::zoom_delta = 0;
+
+std::list<float> KinectSensor::handPosXBuf = std::list<float>(), KinectSensor::handPosYBuf = std::list<float>(), KinectSensor::handPosZBuf = std::list<float>();
+std::list<float> KinectSensor::spinePosXBuf = std::list<float>(), KinectSensor::spinePosYBuf = std::list<float>(), KinectSensor::spinePosZBuf = std::list<float>();
 
 void KinectSensor::addHandJoint(Joint handJoint) {
   if (handPosXBuf.size() < BUFFER_SIZE) {
@@ -303,10 +307,13 @@ void KinectSensor::updateGesture(IBody *pBody) {
       if (mode == Renderer::DisplayMode::Gallery) {
         if (std::abs(hand_pos_x - handCoords[0]) >
             THRESHOLD_DISTANCE_SWAP_CANDIDATES) {
-          gestureType = PANNING;
-          hand_pos_x = handCoords[0];
-          hand_pos_y = handCoords[1];
-          timer = std::time(nullptr);
+			timer = std::time(nullptr);
+			gestureType = PANNING;
+		  panning_delta_x = hand_pos_x - handCoords[0];
+		  panning_delta_y = hand_pos_y - handCoords[1];
+          //hand_pos_x = handCoords[0];
+          //hand_pos_y = handCoords[1];
+          
         } else if (std::time(nullptr) - timer > THRESHOLD_TIMER) {
           gestureType = SELECT;
         } else {
