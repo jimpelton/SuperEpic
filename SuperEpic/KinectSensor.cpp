@@ -304,6 +304,8 @@ void KinectSensor::updateGesture(IBody *pBody) {
         if (std::abs(hand_pos_x - handCoords[0]) >
             THRESHOLD_DISTANCE_SWAP_CANDIDATES) {
           gestureType = PANNING;
+		  panning_delta_x = hand_pos_x - handCoords[0];
+		  panning_delta_y = hand_pos_y - handCoords[1];
           hand_pos_x = handCoords[0];
           hand_pos_y = handCoords[1];
           timer = std::time(nullptr);

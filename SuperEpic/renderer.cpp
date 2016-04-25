@@ -1,5 +1,5 @@
-
 #include "renderer.h"
+#include <ctime>
 
 #ifdef WIN32
 #include "KinectSensor.h"
@@ -378,16 +378,14 @@ void Renderer::onNoGesture() {
   KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
                                 m_winDims.y, reinterpret_cast<int *>(&pos));
   m_cursor->setPos(pos.x, pos.y);
-  m_previousImageHoverIndex = m_currentImageHoverIndex;
-  m_currentImageHoverIndex = getGalleryIndexFromCoord(pos.x);
-  if (m_previousImageHoverIndex != m_currentImageHoverIndex) {
-    m_clickCount = 0;
-    m_selected = false;
-  }
 }
 
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::onSelect() {}
+void Renderer::onSelect() {
+  m_currentImageSelectIndex = m_currentImageHoverIndex;
+  if (m_currentImageSelectIndex == m_previousImageSelectIndex)
+    m_selected = true;
+}
 
 void Renderer::onPanning() {
   if (m_mode == DisplayMode::Gallery) {
@@ -400,10 +398,14 @@ void Renderer::onPanning() {
 }
 
 void Renderer::onZoom(int factor) {
-  if (m_mode == DisplayMode::Gallery && factor < 0) {
-    m_willingToQuit -= factor;
-    if (m_willingToQuit >= DEFAULT_WILLING_TO_QUIT) {
-      m_shouldQuit = true;
+  if (m_mode == DisplayMode::Gallery) {
+    if (factor < 0) {
+      m_willingToQuit -= factor;
+      if (m_willingToQuit >= DEFAULT_WILLING_TO_QUIT) {
+        m_shouldQuit = true;
+      }
+    } else if (m_selected) {
+      prepareForGalleryToImageTransition();
     }
   } else if (m_mode == DisplayMode::Image) {
     float currentScaleFactor =
@@ -415,7 +417,10 @@ void Renderer::onZoom(int factor) {
   }
 }
 
-void Renderer::onSelectionProgress() {}
+void Renderer::onSelectionProgress() {
+  if (std::time(nullptr) - KinectSensor::timer > THRESHOLD_TIMER / 2)
+    m_previousImageSelectIndex = m_currentImageHoverIndex;
+}
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderGalleryMode() {
@@ -460,7 +465,9 @@ void Renderer::renderImageTextures() {
 
     img->draw();
 
-    if (m_selected && i == m_currentImageHoverIndex) {
+    if (m_selected &&
+        (!m_useKinectForCursorPos && i == m_currentImageHoverIndex ||
+         m_useKinectForCursorPos && i == m_currentImageSelectIndex)) {
       renderRectangle(img->getBounds(), 255, 0, 0);
     }
   }

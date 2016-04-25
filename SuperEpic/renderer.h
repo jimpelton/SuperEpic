@@ -43,7 +43,7 @@ public:
 
   void cursorSpeed(float s) { m_cursorSpeed = s; }
   float cursorSpeed() const { return m_cursorSpeed; }
-  static bool m_shouldQuit;            ///< If the main loop should exit.
+  static bool m_shouldQuit; ///< If the main loop should exit.
 
 private:
   /// \brief Handle SDL events! :)
@@ -62,7 +62,8 @@ private:
   void onSelectionProgress();
   /// \brief Update renderer state for making the transition to Image mode.
   void prepareForGalleryToImageTransition();
-  /// \brief Update renderer state for displaying Image view mode (after completing transition).
+  /// \brief Update renderer state for displaying Image view mode (after
+  /// completing transition).
   void prepareForImageViewMode();
   /// \brief Update renderer state for displaying the Gallery mode.
   void prepareForGalleryViewMode();
@@ -109,7 +110,7 @@ private:
   int m_previousImageHoverIndex; ///< The image index that the cursor was
                                  /// hovering over.
 
-  DisplayMode m_mode; ///< Gallery view, or image view
+  DisplayMode m_mode;      ///< Gallery view, or image view
   int m_galleryStartIndex; ///< The index within the gallery to start at.
 
   std::vector<Image *> m_images; ///< Textures currently loaded into memory.
@@ -129,6 +130,9 @@ private:
   int m_imageStartingPos;
 
   int m_willingToQuit;
+
+  int m_currentImageSelectIndex;  ///< The image index that the user select
+  int m_previousImageSelectIndex; ///< The image index that the user select
 };
 
 #endif // ! epic_renderer_h__
