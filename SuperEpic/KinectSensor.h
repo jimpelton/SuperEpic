@@ -18,7 +18,7 @@
 #define VIRTUAL_RECTANGLE_CORNER_R_X 0.35
 #define VIRTUAL_RECTANGLE_CORNER_R_Y 0.25
 
-#define THRESHOLD_DISTANCE_SWAP_CANDIDATES 0.1
+#define THRESHOLD_DISTANCE_SWAP_CANDIDATES 0.005
 #define THRESHOLD_DISTANCE_ZOOMING 0.1
 #define THRESHOLD_TIMER 2
 
@@ -65,6 +65,10 @@ public:
   static int timer;
   static float hand_distance;
   static float hand_pos_x;
+  static float hand_pos_y;
+  static float panning_delta_x;
+  static float panning_delta_y;
+  static float zoom_delta;
   static bool rightHand_closed;
   static bool leftHand_closed;
 
@@ -86,6 +90,7 @@ public:
                               int screenHeight, int *cursor);
   static float *handCoords;
   static bool KeepUpdatingHandPos;
+  static float getHandsDistance(IBody *pBody);
 
   /* Gesture builder functions */
   static void updateGesture(IBody *pBody);

@@ -156,6 +156,8 @@ void Renderer::loop() {
     }
 #endif
 
+	std::cout << KinectSensor::getGestureType() << "[" << KinectSensor::zoom_delta << std::endl;
+
     SDL_RenderClear(m_renderer);
 
     switch (m_mode) {

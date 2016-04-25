@@ -14,8 +14,14 @@ int KinectSensor::timer = 0;
 bool KinectSensor::rightHand_closed = false;
 bool KinectSensor::leftHand_closed = false;
 float KinectSensor::hand_pos_x = 0;
+float KinectSensor::hand_pos_y = 0;
 float KinectSensor::hand_distance = 0;
 bool KinectSensor::KeepUpdatingHandPos = true;
+
+float KinectSensor::panning_delta_x = 0;
+float KinectSensor::panning_delta_y = 0;
+
+float KinectSensor::zoom_delta = 0;
 
 KinectSensor::KinectSensor() {
   HRESULT hr;
@@ -211,13 +217,15 @@ void KinectSensor::updateGesture(IBody *pBody) {
   int hr;
   HandState handState;
   pBody->get_HandRightState(&handState);
-  if (handState == HandState_Closed) {
+  if (handState == HandState_Closed) { // Right hand closed
 
-    if (rightHand_closed) {
+    if (rightHand_closed) { // Right hand previously closed
       if (mode == Renderer::DisplayMode::Gallery) {
         if (std::abs(hand_pos_x - handCoords[0]) >
             THRESHOLD_DISTANCE_SWAP_CANDIDATES) {
-          gestureType = SWAP_CANDIDATES;
+          gestureType = PANNING;
+		  hand_pos_x = handCoords[0];
+		  hand_pos_y = handCoords[1];
           timer = std::time(nullptr);
         } else if (std::time(nullptr) - timer > THRESHOLD_TIMER) {
           gestureType = SELECT;
@@ -226,51 +234,38 @@ void KinectSensor::updateGesture(IBody *pBody) {
         }
       } else {
         gestureType = PANNING;
+		panning_delta_x = hand_pos_x - handCoords[0];
+		panning_delta_y = hand_pos_y - handCoords[1];
       }
 
     } else {
       gestureType = PANNING;
+	  panning_delta_x = hand_pos_x - handCoords[0];
+	  panning_delta_y = hand_pos_y - handCoords[1];
       timer = std::time(nullptr);
       // Store hand position x
       hand_pos_x = handCoords[0];
+	  hand_pos_y = handCoords[1];
     }
 
-    if (mode == Renderer::DisplayMode::Image) {
+    //if (mode == Renderer::DisplayMode::Image) {
       pBody->get_HandLeftState(&handState);
       if (handState == HandState_Closed) {
-        if (!leftHand_closed) {
-          leftHand_closed = true;
-          // Store distance
-          Joint joints[JointType_Count];
-          hr = pBody->GetJoints(_countof(joints), joints);
-          Joint rhj = joints[JointType_HandRight];
-          Joint lhj = joints[JointType_HandLeft];
-          hand_distance = sqrt((rhj.Position.X - lhj.Position.X) *
-                                   (rhj.Position.X - lhj.Position.X) +
-                               (rhj.Position.Y - lhj.Position.Y) *
-                                   (rhj.Position.Y - lhj.Position.Y));
-        }
-      } else {
-        if (leftHand_closed) {
-          leftHand_closed = false;
-          Joint joints[JointType_Count];
-          hr = pBody->GetJoints(_countof(joints), joints);
-          Joint rhj = joints[JointType_HandRight];
-          Joint lhj = joints[JointType_HandLeft];
-          float d = sqrt((rhj.Position.X - lhj.Position.X) *
-                             (rhj.Position.X - lhj.Position.X) +
-                         (rhj.Position.Y - lhj.Position.Y) *
-                             (rhj.Position.Y - lhj.Position.Y));
-          if (d - hand_distance < 0) {
-            gestureType = ZOOM_OUT;
-            Sleep(500);
-          } else {
-            gestureType = ZOOM_IN;
-            Sleep(500);
-          }
-        }
-      }
-    }
+		  float d = getHandsDistance(pBody);
+		  if (d - hand_distance < 0) {
+			  gestureType = ZOOM_OUT;
+			  zoom_delta = getHandsDistance(pBody) - hand_distance;
+		  }
+		  else
+		  {
+			  gestureType = ZOOM_IN;
+			  zoom_delta = getHandsDistance(pBody) - hand_distance;
+			 
+		  }
+		  hand_distance = d;
+
+       }
+   // }
 
     // Set rightHand closed state true
     rightHand_closed = true;
@@ -278,30 +273,36 @@ void KinectSensor::updateGesture(IBody *pBody) {
     // Detect no gesture
     gestureType = NO_GESTURE;
     hand_pos_x = 0;
+	hand_pos_y = 0;
     rightHand_closed = false;
 
     if (mode == Renderer::DisplayMode::Image) {
       // ZOOM IN/OUT
       if (leftHand_closed) {
         leftHand_closed = false;
-        Joint joints[JointType_Count];
-        hr = pBody->GetJoints(_countof(joints), joints);
-        Joint rhj = joints[JointType_HandRight];
-        Joint lhj = joints[JointType_HandLeft];
-        float d = sqrt((rhj.Position.X - lhj.Position.X) *
-                           (rhj.Position.X - lhj.Position.X) +
-                       (rhj.Position.Y - lhj.Position.Y) *
-                           (rhj.Position.Y - lhj.Position.Y));
+		float d = getHandsDistance(pBody);
         if (d - hand_distance < 0) {
           gestureType = ZOOM_OUT;
-          Sleep(500);
+		  zoom_delta = getHandsDistance(pBody) - hand_distance;
         } else {
           gestureType = ZOOM_IN;
-          Sleep(500);
+		  zoom_delta = getHandsDistance(pBody) - hand_distance;
         }
       }
     }
   }
+}
+
+float KinectSensor::getHandsDistance(IBody *pBody) {
+	Joint joints[JointType_Count];
+	int hr = pBody->GetJoints(_countof(joints), joints);
+	Joint rhj = joints[JointType_HandRight];
+	Joint lhj = joints[JointType_HandLeft];
+	float d = sqrt((rhj.Position.X - lhj.Position.X) *
+		(rhj.Position.X - lhj.Position.X) +
+		(rhj.Position.Y - lhj.Position.Y) *
+		(rhj.Position.Y - lhj.Position.Y));
+	return d;
 }
 
 std::string KinectSensor::getGestureType() {
