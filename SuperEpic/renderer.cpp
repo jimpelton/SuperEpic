@@ -379,10 +379,11 @@ void Renderer::onSelect() {}
 
 void Renderer::onPanning() {
 	if (m_mode == DisplayMode::Gallery) {
-		shiftCandidates(KinectSensor::panning_delta_x);
+		shiftCandidates(KinectSensor::panning_delta_x * 30);
 	}
 	else if (m_mode == DisplayMode::Image) {
-
+		SDL_Point delta{ KinectSensor::panning_delta_x * 30, KinectSensor::panning_delta_y * 30 };
+		m_imageModeImage->panBy(delta);
 	}
 }
 
