@@ -172,7 +172,7 @@ void Renderer::loop() {
       renderGalleryMode();
       break;
     case DisplayMode::FromGalleryToImage:
-      renderTransitionMode(since, m_targetScale);
+      renderTransitionMode(since);
       break;
     case DisplayMode::Image:
       renderImageViewMode();
@@ -223,44 +223,24 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
       }
       if (m_clickCount == 1) { // image selected under cursor
         m_selected = true;
-      } else if (m_clickCount == 2) { // switch to image view mode.
+      } else if (m_clickCount == 2) { // switch to GalleryToImage transition mode.
+        prepareForGalleryToImageTransition();
         // m_mode = DisplayMode::Image;
-        m_mode = DisplayMode::FromGalleryToImage;
-        m_clickCount = 0;
-        m_selected = false;
-
-        int idx = getGalleryIndexFromCoord(button.x);
-        m_imageModeImage = getImageFromGalleryIndex(idx);
-        m_imageModeImage->maximize();
-        m_targetScale = m_imageModeImage->getScaleFactor();
-        m_imageModeImage->scale(0.0f);
-        // m_imageModeImage->maximize();
-        //        SDL_QueryTexture(m_imageModeImage->getTexture(), nullptr,
-        //        nullptr,
-        //                         &m_srcImageRect.w,
-        //                         &m_srcImageRect.h);
-
-        //        m_srcImageRect.x = m_srcImageRect.y = 0;
-        //        m_destWindowRect.x = (m_winDims.x / 5) * 2;
-        //        m_destWindowRect.y = (m_winDims.y / 5) * 2;
-        //        m_destWindowRect.h = m_winDims.y / 5;
-        //        m_destWindowRect.w = m_winDims.x / 5;
-        //        m_imageScreenRatio = 0;
-        //        findLeastIncrement(m_destWindowRect.w, m_destWindowRect.h,
-        //        true);
-        //        findLeastIncrement(m_srcImageRect.w, m_srcImageRect.h, false);
-        //        smoothIncrement();
-
-        //        m_mode = DisplayMode::FromGalleryToImage;
-        //        std::cout << "Switch to Image View (image#: " << idx << ")\n";
+//        m_mode = DisplayMode::FromGalleryToImage;
+//        m_clickCount = 0;
+//        m_selected = false;
+//
+//        int idx = getGalleryIndexFromCoord(button.x);
+//        m_imageModeImage = getImageFromGalleryIndex(idx);
+//        m_imageModeImage->maximize();
+//        m_targetScale = m_imageModeImage->getScaleFactor();
+//        m_imageModeImage->scale(0.0f);
       }
     }
   } else if (button.button == SDL_BUTTON_RIGHT) {
     if (m_mode == DisplayMode::Image) {
-      m_mode = DisplayMode::Gallery;
-      KinectSensor::mode = DisplayMode::Gallery;
-      std::cout << "Switch to Gallery View"
-                << "\n";
+      prepareForGalleryViewMode();
+
     }
   }
 }
@@ -271,14 +251,12 @@ void Renderer::onKeyDown(const SDL_KeyboardEvent &key) {
   switch (key.keysym.sym) {
   case SDLK_ESCAPE:
     if (m_mode == DisplayMode::Image) {
-      m_mode = DisplayMode::Gallery; // go back to gallery.
-      KinectSensor::mode = DisplayMode::Gallery;
+      prepareForGalleryViewMode(); // go back to Gallery View.
     } else if (m_mode == DisplayMode::Gallery) {
-      m_shouldQuit = true; // if in gallery, then quit.
+      m_shouldQuit = true; // If in gallery, then quit.
     }
     break;
   case SDLK_LEFT:
-    // scroll images left one index, wraps if start index is < 0.
     if (m_mode == DisplayMode::Gallery) {
       shiftCandidates(-10);
     } else if (m_mode == DisplayMode::Image) {
@@ -286,8 +264,7 @@ void Renderer::onKeyDown(const SDL_KeyboardEvent &key) {
       m_imageModeImage->panBy(delta);
     }
     break;
-  case SDLK_RIGHT:
-    // scroll images right one index, wraps if start index > m_images.size()-1
+  case SDLK_RIGHT: // scroll images left 
     if (m_mode == DisplayMode::Gallery) {
       shiftCandidates(10);
     } else if (m_mode == DisplayMode::Image) {
@@ -347,6 +324,7 @@ void Renderer::onWindowEvent(const SDL_WindowEvent &window) {
   }
 }
 
+
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent &motion) {
   m_cursor->setPos(motion.x, motion.y);
@@ -358,6 +336,7 @@ void Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent &motion) {
   }
 }
 
+
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
   if (m_mode == DisplayMode::Image) {
@@ -365,42 +344,11 @@ void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
     if (event.direction == SDL_MOUSEWHEEL_FLIPPED) {
       scrollDeg *= -1;
     }
-    //    m_imageModeImage->scale(1 + (scrollDeg * 0.5));
-    //    if (scrollDeg < 0) { // scroll backward - zoom out
-    //      if (m_imageScreenRatio <= 0) {
-    //        m_destWindowRect.h -= m_windowHeightLeastIncrement * 2;
-    //        m_destWindowRect.w -= m_windowWidthLeastIncrement * 2;
-    //        m_destWindowRect.y += m_windowHeightLeastIncrement;
-    //        m_destWindowRect.x += m_windowWidthLeastIncrement;
-    //        if (m_destWindowRect.w <= (m_winDims.x / 5)) {
-    //          m_mode = DisplayMode::Gallery;
-    //          std::cout << "Switch to Gallery View"
-    //              << "\n";
-    //        }
-    //      } else {
-    //        m_srcImageRect.h += m_imageHeightLeastIncrement * 2;
-    //        m_srcImageRect.w += m_imageWidthLeastIncrement * 2;
-    //        m_srcImageRect.y -= m_imageHeightLeastIncrement;
-    //        m_srcImageRect.x -= m_imageWidthLeastIncrement;
-    //      }
-    //      m_imageScreenRatio--;
-    //    } else if (scrollDeg > 0) { // scroll forward - zoom in
-    //      if (m_imageScreenRatio >= 0) {
-    //        m_srcImageRect.h -= m_imageHeightLeastIncrement * 2;
-    //        m_srcImageRect.w -= m_imageWidthLeastIncrement * 2;
-    //        m_srcImageRect.y += m_imageHeightLeastIncrement;
-    //        m_srcImageRect.x += m_imageWidthLeastIncrement;
-    //      } else {
-    //        m_destWindowRect.h += m_windowHeightLeastIncrement * 2;
-    //        m_destWindowRect.w += m_windowWidthLeastIncrement * 2;
-    //        m_destWindowRect.y -= m_windowHeightLeastIncrement;
-    //        m_destWindowRect.x -= m_windowWidthLeastIncrement;
-    //      }
-    //      m_imageScreenRatio++;
-    //    }
   }
 }
 
+
+////////////////////////////////////////////////////////////////////////////
 void Renderer::onGesture() {
   std::string gesture = KinectSensor::getGestureType();
   if (gesture == "NO_GESTURE")
@@ -417,6 +365,8 @@ void Renderer::onGesture() {
     onSelectionProgress();
 }
 
+
+////////////////////////////////////////////////////////////////////////////
 void Renderer::onNoGesture() {
   SDL_Point pos;
   KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
@@ -430,6 +380,8 @@ void Renderer::onNoGesture() {
   }
 }
 
+
+////////////////////////////////////////////////////////////////////////////
 void Renderer::onSwapCandidate() {
   SDL_Point pos;
   KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
@@ -444,6 +396,7 @@ void Renderer::onZoom() {}
 
 void Renderer::onSelectionProgress() {}
 
+
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderGalleryMode() {
   renderImageTextures();
@@ -451,17 +404,16 @@ void Renderer::renderGalleryMode() {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::renderTransitionMode(float secondsSinceLastUpdate,
-                                    float targetScale) {
+void Renderer::renderTransitionMode(float secondsSinceLastUpdate) {
   float zoom_speed = 0.001f;
 
   float scale = m_imageModeImage->getScaleFactor() +
                 (zoom_speed * secondsSinceLastUpdate);
-  if (scale > targetScale) {
-    m_imageModeImage->scale(targetScale);
-    m_imageModeImage->setBaseScaleFactor(targetScale);
-    m_mode = DisplayMode::Image;
-    KinectSensor::mode = DisplayMode::Image;
+  
+  // Keep scaling until the target scale has been reached.
+  if (scale > m_targetScale) {
+    // done animating so go to Image view mode.
+    prepareForImageViewMode();
     return;
   }
 
@@ -557,6 +509,38 @@ void Renderer::updateThumbForGalleryView(Image *thumb, int thumbXPos,
   dest.y = (m_winDims.y * 4 / 5) - (dest.h / 2);
 
   thumb->setBounds(dest);
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+void Renderer::prepareForGalleryToImageTransition()
+{
+  m_mode = DisplayMode::FromGalleryToImage;
+  m_clickCount = 0;
+  m_selected = false;
+
+  int mouseX{ m_cursor->getCursorImage()->getCenter().x };
+  int idx{ getGalleryIndexFromCoord(mouseX) };
+  m_imageModeImage = getImageFromGalleryIndex(idx);
+  m_imageModeImage->maximize();
+  m_targetScale = m_imageModeImage->getScaleFactor();
+  m_imageModeImage->scale(0.0f);
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+void Renderer::prepareForImageViewMode()
+{
+  m_mode = KinectSensor::mode = DisplayMode::Image;
+  m_imageModeImage->scale(m_targetScale);
+  m_imageModeImage->setBaseScaleFactor(m_targetScale);
+}
+
+
+void Renderer::prepareForGalleryViewMode()
+{
+  m_mode = KinectSensor::mode = DisplayMode::Gallery;
+  std::cout << "Switch to Gallery View" << "\n";
 }
 
 ////////////////////////////////////////////////////////////////////////////

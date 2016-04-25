@@ -61,10 +61,16 @@ private:
   void onPanning();
   void onZoom();
   void onSelectionProgress();
+  /// \brief Update renderer state for making the transition to Image mode.
+  void prepareForGalleryToImageTransition();
+  /// \brief Update renderer state for displaying Image view mode (after completing transition).
+  void prepareForImageViewMode();
+  /// \brief Update renderer state for displaying the Gallery mode.
+  void prepareForGalleryViewMode();
   /// \brief Render 5 images (thumbnails) in gallery mode.
   void renderGalleryMode();
-  /// \brief Render transaction from gallery mode to image mode
-  void renderTransitionMode(float secondsSinceLastUpdate, float targetScale);
+  /// \brief Render transition from gallery mode to image mode
+  void renderTransitionMode(float dt);
   /// \brief Render the image pointed to by m_imageModeImage;
   void renderImageViewMode() const;
   /// \brief Render the texture for the cursor
@@ -74,8 +80,7 @@ private:
   /// \brief Renders all thumbs
   void renderThumbsTexture();
   /// \brief Render a rectangle around the texture under the cursor.
-  void Renderer::renderRectangle(const SDL_Rect &dest, Uint8 R, Uint8 G,
-                                 Uint8 B) const;
+  void renderRectangle(const SDL_Rect &dest, Uint8 R, Uint8 G, Uint8 B) const;
   /// \brief Update img's position and size for the gallery view mode.
   void updateImageForGalleryView(Image *img, int imgXPos, int imgWidth);
   /// \brief Update thumb's position and size for the gallery view mode.
@@ -106,14 +111,11 @@ private:
                                  /// hovering over.
 
   DisplayMode m_mode; ///< Gallery view, or image view
-  // RenderStrategy *m_rendStrat  ///< The method to render current DisplayMode
-  // (gallery or image view)
   int m_galleryStartIndex; ///< The index within the gallery to start at.
 
   std::vector<Image *> m_images; ///< Textures currently loaded into memory.
   std::vector<Image *> m_thumbs; ///< Textures for thumbs
   Image *m_imageModeImage;       ///< The image to display in image view mode.
-  ///< Note: m_imageModeImage != m_images[m_currentImageHoverIndex], fyi!
 
   /// The scaling factor that the gallery to image transition should stop at.
   float m_targetScale;
@@ -126,22 +128,6 @@ private:
   bool m_selected;  ///< If user choose a candidate image.
 
   int m_imageStartingPos;
-
-  //  SDL_Rect m_srcImageRect;   ///< Source image rectangle.
-  //  SDL_Rect m_destWindowRect; ///< Destination sdl_window rectangle.
-  //  int m_imageScreenRatio;    ///< Image screen ratio,
-  ///< 0 when image = screen
-  ///< >0 when image > screen (zoomed in)
-  ///< <0 when image < screen (zoomed out)
-
-  //  int m_windowHeightLeastIncrement; ///< Window height min increment
-  //  int m_windowWidthLeastIncrement;  ///< Window width min increment
-  //  int m_imageHeightLeastIncrement;  ///< Image height min increment
-  //  int m_imageWidthLeastIncrement;   ///< Image width min increment
-
-  //  void findLeastIncrement(int width, int height,
-  //                          bool isWindow); ///< Find least increment
-  //  void smoothIncrement();
 };
 
 #endif // ! epic_renderer_h__
