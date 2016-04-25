@@ -25,7 +25,6 @@
 #define NO_GESTURE 0
 #define SELECT 1
 #define PANNING 2
-#define SWAP_CANDIDATES 3
 #define ZOOM_IN 4
 #define ZOOM_OUT 5
 #define SELECTION_PROGRESS 6

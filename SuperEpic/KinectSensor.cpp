@@ -315,8 +315,6 @@ std::string KinectSensor::getGestureType() {
     return "PANNING";
   case SELECT:
     return "SELECT";
-  case SWAP_CANDIDATES:
-    return "SWAP_CANDIDATES";
   case ZOOM_IN:
     return "ZOOM_IN";
   case ZOOM_OUT:

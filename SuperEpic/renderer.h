@@ -56,7 +56,6 @@ private:
   /// \brief Handle gestures
   void onGesture();
   void onNoGesture();
-  void onSwapCandidate();
   void onSelect();
   void onPanning();
   void onZoom();

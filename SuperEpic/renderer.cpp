@@ -38,9 +38,8 @@ Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
       m_winPos{winX, winY}, m_cursorSpeed{DEFAULT_CURSOR_SPEED},
       m_cursor{new Cursor()}, m_mode{DisplayMode::Gallery},
       m_galleryStartIndex{0}, m_images{}, m_imageModeImage{nullptr},
-      m_fullScreen{false},  m_useKinectForCursorPos{false},
-      m_imageStartingPos{0}, m_clickCount{0},
-      m_selected{false} //  , m_srcImageRect{ 0, 0, 0, 0 }
+      m_fullScreen{true}, m_useKinectForCursorPos{false}, m_imageStartingPos{0},
+      m_clickCount{0}, m_selected{false} //  , m_srcImageRect{ 0, 0, 0, 0 }
 //  , m_destWindowRect{ 0, 0, 0, 0 }
 //  , m_imageScreenRatio{ 0 }
 //  , m_windowHeightLeastIncrement{ 0 }
@@ -163,7 +162,8 @@ void Renderer::loop() {
     }
 #endif
 
-	std::cout << KinectSensor::getGestureType() << "[" << KinectSensor::zoom_delta << std::endl;
+    std::cout << KinectSensor::getGestureType() << "["
+              << KinectSensor::zoom_delta << std::endl;
 
     SDL_RenderClear(m_renderer);
 
@@ -223,24 +223,24 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
       }
       if (m_clickCount == 1) { // image selected under cursor
         m_selected = true;
-      } else if (m_clickCount == 2) { // switch to GalleryToImage transition mode.
+      } else if (m_clickCount ==
+                 2) { // switch to GalleryToImage transition mode.
         prepareForGalleryToImageTransition();
         // m_mode = DisplayMode::Image;
-//        m_mode = DisplayMode::FromGalleryToImage;
-//        m_clickCount = 0;
-//        m_selected = false;
-//
-//        int idx = getGalleryIndexFromCoord(button.x);
-//        m_imageModeImage = getImageFromGalleryIndex(idx);
-//        m_imageModeImage->maximize();
-//        m_targetScale = m_imageModeImage->getScaleFactor();
-//        m_imageModeImage->scale(0.0f);
+        //        m_mode = DisplayMode::FromGalleryToImage;
+        //        m_clickCount = 0;
+        //        m_selected = false;
+        //
+        //        int idx = getGalleryIndexFromCoord(button.x);
+        //        m_imageModeImage = getImageFromGalleryIndex(idx);
+        //        m_imageModeImage->maximize();
+        //        m_targetScale = m_imageModeImage->getScaleFactor();
+        //        m_imageModeImage->scale(0.0f);
       }
     }
   } else if (button.button == SDL_BUTTON_RIGHT) {
     if (m_mode == DisplayMode::Image) {
       prepareForGalleryViewMode();
-
     }
   }
 }
@@ -264,7 +264,7 @@ void Renderer::onKeyDown(const SDL_KeyboardEvent &key) {
       m_imageModeImage->panBy(delta);
     }
     break;
-  case SDLK_RIGHT: // scroll images left 
+  case SDLK_RIGHT: // scroll images left
     if (m_mode == DisplayMode::Gallery) {
       shiftCandidates(10);
     } else if (m_mode == DisplayMode::Image) {
@@ -324,7 +324,6 @@ void Renderer::onWindowEvent(const SDL_WindowEvent &window) {
   }
 }
 
-
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent &motion) {
   m_cursor->setPos(motion.x, motion.y);
@@ -336,7 +335,6 @@ void Renderer::onMouseMotionEvent(const SDL_MouseMotionEvent &motion) {
   }
 }
 
-
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
   if (m_mode == DisplayMode::Image) {
@@ -347,14 +345,11 @@ void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
   }
 }
 
-
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onGesture() {
   std::string gesture = KinectSensor::getGestureType();
   if (gesture == "NO_GESTURE")
     onNoGesture();
-  else if (gesture == "SWAP_CANDIDATES")
-    onSwapCandidate();
   else if (gesture == "SELECT")
     onSelect();
   else if (gesture == "PANNING")
@@ -364,7 +359,6 @@ void Renderer::onGesture() {
   else if (gesture == "SELECTION_PROGRESS")
     onSelectionProgress();
 }
-
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onNoGesture() {
@@ -380,22 +374,21 @@ void Renderer::onNoGesture() {
   }
 }
 
-
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::onSwapCandidate() {
-  SDL_Point pos;
-  KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
-                                m_winDims.y, reinterpret_cast<int *>(&pos));
-}
-
 void Renderer::onSelect() {}
 
-void Renderer::onPanning() {}
+void Renderer::onPanning() {
+	if (m_mode == DisplayMode::Gallery) {
+		shiftCandidates(KinectSensor::panning_delta_x);
+	}
+	else if (m_mode == DisplayMode::Image) {
+
+	}
+}
 
 void Renderer::onZoom() {}
 
 void Renderer::onSelectionProgress() {}
-
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderGalleryMode() {
@@ -409,7 +402,7 @@ void Renderer::renderTransitionMode(float secondsSinceLastUpdate) {
 
   float scale = m_imageModeImage->getScaleFactor() +
                 (zoom_speed * secondsSinceLastUpdate);
-  
+
   // Keep scaling until the target scale has been reached.
   if (scale > m_targetScale) {
     // done animating so go to Image view mode.
@@ -511,36 +504,31 @@ void Renderer::updateThumbForGalleryView(Image *thumb, int thumbXPos,
   thumb->setBounds(dest);
 }
 
-
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::prepareForGalleryToImageTransition()
-{
+void Renderer::prepareForGalleryToImageTransition() {
   m_mode = DisplayMode::FromGalleryToImage;
   m_clickCount = 0;
   m_selected = false;
 
-  int mouseX{ m_cursor->getCursorImage()->getCenter().x };
-  int idx{ getGalleryIndexFromCoord(mouseX) };
+  int mouseX{m_cursor->getCursorImage()->getCenter().x};
+  int idx{getGalleryIndexFromCoord(mouseX)};
   m_imageModeImage = getImageFromGalleryIndex(idx);
   m_imageModeImage->maximize();
   m_targetScale = m_imageModeImage->getScaleFactor();
   m_imageModeImage->scale(0.0f);
 }
 
-
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::prepareForImageViewMode()
-{
+void Renderer::prepareForImageViewMode() {
   m_mode = KinectSensor::mode = DisplayMode::Image;
   m_imageModeImage->scale(m_targetScale);
   m_imageModeImage->setBaseScaleFactor(m_targetScale);
 }
 
-
-void Renderer::prepareForGalleryViewMode()
-{
+void Renderer::prepareForGalleryViewMode() {
   m_mode = KinectSensor::mode = DisplayMode::Gallery;
-  std::cout << "Switch to Gallery View" << "\n";
+  std::cout << "Switch to Gallery View"
+            << "\n";
 }
 
 ////////////////////////////////////////////////////////////////////////////
