@@ -22,6 +22,7 @@ public:
   /// \return nullptr if failure, otherwise a valid Image.
   static Image *load(const std::string &imgFilePath);
 
+  Image();
   virtual ~Image();
 
   void draw();
@@ -85,8 +86,6 @@ public:
   float getBaseScaleFactor() const;
 
 private:
-  Image();
-
   SDL_Texture *m_texture;
   SDL_Rect m_bbox; ///< The bounding box for this image
   SDL_Rect m_src;  ///< The cropping rectangle for this image.

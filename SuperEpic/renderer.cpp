@@ -21,9 +21,11 @@ const float DEFAULT_CURSOR_SPEED{1.0f};
 
 const int NUM_IMAGES_TO_DRAW{6};
 
-const char *DEFAULT_CURSOR_TEXTURE_PATH{"../res/crosshair.png"};
-
-const int DEFAULT_WILLING_TO_QUIT{40};
+// const char *DEFAULT_CURSOR_TEXTURE_PATH{"../res/open_hand.png"};
+// const char *DEFAULT_CURSOR_RING_TEXTURE_PATH{
+// "../res/circle_section_white.png" };
+const float DEFAULT_CURSOR_RING_CYCLE_SECONDS{1.0f};
+const int DEFAULT_WILLING_TO_QUIT{60};
 } // namespace
 
 bool Renderer::m_shouldQuit = false;
@@ -37,11 +39,10 @@ Renderer::Renderer()
 Renderer::Renderer(int winWidth, int winHeight, int winX, int winY)
     : m_window{nullptr}, m_renderer{nullptr}, m_winDims{winWidth, winHeight},
       m_winPos{winX, winY}, m_cursorSpeed{DEFAULT_CURSOR_SPEED},
-      m_cursor{new Cursor()}, m_mode{DisplayMode::Gallery},
-      m_galleryStartIndex{0}, m_images{}, m_imageModeImage{nullptr},
-      m_fullScreen{false}, m_useKinectForCursorPos{false},
-      m_imageStartingPos{0}, m_clickCount{0}, m_selected{false},
-      m_willingToQuit{0} //  , m_srcImageRect{ 0, 0, 0, 0 }
+      m_cursor{nullptr}, m_mode{DisplayMode::Gallery}, m_galleryStartIndex{0},
+      m_images{}, m_imageModeImage{nullptr}, m_fullScreen{false},
+      m_useKinectForCursorPos{false}, m_imageStartingPos{0}, m_clickCount{0},
+      m_selected{false}, m_willingToQuit{0} //  , m_srcImageRect{ 0, 0, 0, 0 }
 //  , m_destWindowRect{ 0, 0, 0, 0 }
 //  , m_imageScreenRatio{ 0 }
 //  , m_windowHeightLeastIncrement{ 0 }
@@ -110,7 +111,8 @@ int Renderer::init() {
   Image::sdl_window(m_window);
 
   m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED |
-                                                    SDL_RENDERER_PRESENTVSYNC);
+                                                    SDL_RENDERER_PRESENTVSYNC |
+                                                    SDL_RENDERER_TARGETTEXTURE);
 
   if (m_renderer == nullptr) {
     std::cerr << "Could not create SDL_Renderer: " << SDL_GetError() << "\n";
@@ -119,19 +121,21 @@ int Renderer::init() {
 
   Image::sdl_renderer(m_renderer);
 
-  Image *cursImg = Image::load(DEFAULT_CURSOR_TEXTURE_PATH);
-  if (cursImg == nullptr) {
-    std::cerr << "Could not load image texture: " << SDL_GetError()
-              << std::endl;
-    return -1;
-  }
-  m_cursor->setImage(cursImg);
-  m_cursor->setSize(static_cast<int>(m_winDims.x * DEFAULT_CURSOR_SCALE),
-                    static_cast<int>(m_winDims.x * DEFAULT_CURSOR_SCALE));
+  m_cursor = new Cursor();
+  m_cursor->init(static_cast<int>(m_winDims.x * DEFAULT_CURSOR_SCALE),
+                 static_cast<int>(m_winDims.x * DEFAULT_CURSOR_SCALE));
+  //  Image *cursImg = Image::load(DEFAULT_CURSOR_TEXTURE_PATH);
+  //  if (cursImg == nullptr) {
+  //    std::cerr << "Could not load image texture: " << SDL_GetError()
+  //              << std::endl;
+  //    return -1;
+  //  }
+
+  m_cursor->setRingTime(DEFAULT_CURSOR_RING_CYCLE_SECONDS);
 
   SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2); // anti-aliasing
   SDL_ShowCursor(0);                                 // don't show mouse arrow.
-                                                     // toggleFullScreen();
+  toggleFullScreen();
   return 0;
 }
 
@@ -140,7 +144,8 @@ void Renderer::loop() {
   float since = 0.0f; // seconds since last loop iteration
   float then = 0.0f;
   while (!m_shouldQuit) {
-    since = SDL_GetTicks() * 1e-3f - then; // seconds
+    float now = SDL_GetTicks() * 1e-3f;
+    since = now - then; // seconds
 
 // Pop events from the SDL event queue.
 // When we start using the kinect to control, this may get replaced, or
@@ -170,8 +175,7 @@ void Renderer::loop() {
     }
 #endif
 
-    std::cout << KinectSensor::getGestureType() << "["
-              << KinectSensor::zoom_delta << std::endl;
+    std::cout << KinectSensor::getGestureType() << std::endl;
 
     SDL_RenderClear(m_renderer);
 
@@ -187,10 +191,11 @@ void Renderer::loop() {
       break;
     }
 
+    m_cursor->update(since);
     renderCursorTexture();
 
     SDL_RenderPresent(m_renderer);
-    then = since;
+    then = now;
   } // while(!m_shouldQuit)
 
   std::cout << "Exiting render loop\n";
@@ -234,16 +239,6 @@ void Renderer::onMouseButtonUp(const SDL_MouseButtonEvent &button) {
       } else if (m_clickCount ==
                  2) { // switch to GalleryToImage transition mode.
         prepareForGalleryToImageTransition();
-        // m_mode = DisplayMode::Image;
-        //        m_mode = DisplayMode::FromGalleryToImage;
-        //        m_clickCount = 0;
-        //        m_selected = false;
-        //
-        //        int idx = getGalleryIndexFromCoord(button.x);
-        //        m_imageModeImage = getImageFromGalleryIndex(idx);
-        //        m_imageModeImage->maximize();
-        //        m_targetScale = m_imageModeImage->getScaleFactor();
-        //        m_imageModeImage->scale(0.0f);
       }
     }
   } else if (button.button == SDL_BUTTON_RIGHT) {
@@ -358,18 +353,25 @@ void Renderer::onMouseWheelEvent(const SDL_MouseWheelEvent &event) {
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::onGesture() {
   std::string gesture = KinectSensor::getGestureType();
-  if (gesture == "NO_GESTURE")
+  if (gesture == "NO_GESTURE") {
+    m_cursor->setMode(Cursor::Mode::Normal);
     onNoGesture();
-  else if (gesture == "SELECT")
+  } else if (gesture == "SELECT") {
+    m_cursor->setMode(Cursor::Mode::Selected);
     onSelect();
-  else if (gesture == "PANNING")
+  } else if (gesture == "PANNING") {
+    m_cursor->setMode(Cursor::Mode::PanningGallery);
     onPanning();
-  else if (gesture == "ZOOM_IN")
+  } else if (gesture == "ZOOM_IN") {
+    m_cursor->setMode(Cursor::Mode::Selected);
     onZoom(1);
-  else if (gesture == "ZOOM_OUT")
+  } else if (gesture == "ZOOM_OUT") {
+    m_cursor->setMode(Cursor::Mode::Selected);
     onZoom(-1);
-  else if (gesture == "SELECTION_PROGRESS")
+  } else if (gesture == "SELECTION_PROGRESS") {
+    m_cursor->setMode(Cursor::Mode::Selecting);
     onSelectionProgress();
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -377,6 +379,7 @@ void Renderer::onNoGesture() {
   SDL_Point pos;
   KinectSensor::mapHandToCursor(KinectSensor::handCoords, m_winDims.x,
                                 m_winDims.y, reinterpret_cast<int *>(&pos));
+
   m_cursor->setPos(pos.x, pos.y);
   m_previousImageHoverIndex = m_currentImageHoverIndex;
   m_currentImageHoverIndex = getGalleryIndexFromCoord(pos.x);
@@ -408,8 +411,9 @@ void Renderer::onZoom(int factor) {
     } else if (m_selected) {
       m_willingToQuit = 0;
       prepareForGalleryToImageTransition();
-    } else
+    } else {
       m_willingToQuit = 0;
+    }
 
   } else if (m_mode == DisplayMode::Image) {
     float currentScaleFactor =
@@ -422,8 +426,9 @@ void Renderer::onZoom(int factor) {
 }
 
 void Renderer::onSelectionProgress() {
-  if (std::time(nullptr) - KinectSensor::timer > 0.5)
+  if (std::time(nullptr) - KinectSensor::timer > 0.5) {
     m_selected = false;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -434,7 +439,7 @@ void Renderer::renderGalleryMode() {
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderTransitionMode(float secondsSinceLastUpdate) {
-  float zoom_speed = 0.001f;
+  float zoom_speed = 0.3f;
 
   float scale = m_imageModeImage->getScaleFactor() +
                 (zoom_speed * secondsSinceLastUpdate);
@@ -496,7 +501,7 @@ void Renderer::renderThumbsTexture() {
   thumbBox.y = (m_winDims.y * 4 / 5) - (thumbBox.h / 2);
   thumbBox.x += thumbWidth * m_galleryStartIndex -
                 (m_imageStartingPos * thumbWidth / imgWidth);
-  renderRectangle(thumbBox, 1, 0, 255, 255);
+  renderRectangle(thumbBox, 2, 0, 255, 255);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -574,6 +579,7 @@ void Renderer::prepareForGalleryViewMode() {
   m_mode = KinectSensor::mode = DisplayMode::Gallery;
   std::cout << "Switch to Gallery View"
             << "\n";
+  m_willingToQuit = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////

@@ -49,8 +49,6 @@ private:
 
   void error(std::string e, HRESULT hr);
 
-  
-
 public:
   KinectSensor();
   ~KinectSensor();

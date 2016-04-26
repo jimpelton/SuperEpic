@@ -155,6 +155,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="cursor.cpp" />
     <ClCompile Include="image.cpp" />
     <ClCompile Include="KinectSensor.cpp" />
     <ClCompile Include="renderer.cpp" />
