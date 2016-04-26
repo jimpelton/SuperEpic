@@ -131,7 +131,7 @@ int Renderer::init() {
 
   SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2); // anti-aliasing
   SDL_ShowCursor(0);                                 // don't show mouse arrow.
-  toggleFullScreen();
+                                                     // toggleFullScreen();
   return 0;
 }
 
@@ -422,8 +422,9 @@ void Renderer::onZoom(int factor) {
 }
 
 void Renderer::onSelectionProgress() {
-	if(std::time(nullptr) - KinectSensor::timer > 0.5)
-	m_selected = false; }
+  if (std::time(nullptr) - KinectSensor::timer > 0.5)
+    m_selected = false;
+}
 
 ////////////////////////////////////////////////////////////////////////////
 void Renderer::renderGalleryMode() {
@@ -471,7 +472,7 @@ void Renderer::renderImageTextures() {
     if (m_selected &&
         (!m_useKinectForCursorPos && i == m_currentImageHoverIndex ||
          m_useKinectForCursorPos && i == m_currentImageSelectIndex)) {
-      renderRectangle(img->getBounds(), 255, 0, 0);
+      renderRectangle(img->getBounds(), 3, 255, 0, 0);
     }
   }
 }
@@ -495,17 +496,24 @@ void Renderer::renderThumbsTexture() {
   thumbBox.y = (m_winDims.y * 4 / 5) - (thumbBox.h / 2);
   thumbBox.x += thumbWidth * m_galleryStartIndex -
                 (m_imageStartingPos * thumbWidth / imgWidth);
-  renderRectangle(thumbBox, 0, 255, 255);
+  renderRectangle(thumbBox, 1, 0, 255, 255);
 }
 
 ////////////////////////////////////////////////////////////////////////////
-void Renderer::renderRectangle(const SDL_Rect &dest, Uint8 R, Uint8 G,
-                               Uint8 B) const {
+void Renderer::renderRectangle(const SDL_Rect &dest, int thickness, Uint8 R,
+                               Uint8 G, Uint8 B) const {
   // save the clear color so it can be restored after DrawRect()
   Uint8 r, g, b, a;
+  SDL_Rect targetRect(dest);
   SDL_GetRenderDrawColor(m_renderer, &r, &g, &b, &a);
   SDL_SetRenderDrawColor(m_renderer, R, G, B, 0);
-  SDL_RenderDrawRect(m_renderer, &dest);
+  for (int i = 0; i < thickness; i++) {
+    SDL_RenderDrawRect(m_renderer, &targetRect);
+    targetRect.x++;
+    targetRect.y++;
+    targetRect.w -= 2;
+    targetRect.h -= 2;
+  }
   SDL_SetRenderDrawColor(m_renderer, r, g, b, a);
 }
 
@@ -547,7 +555,8 @@ void Renderer::prepareForGalleryToImageTransition() {
   m_clickCount = 0;
   m_selected = false;
   m_willingToQuit = 0;
-  int idx = m_useKinectForCursorPos ? m_currentImageSelectIndex : m_currentImageHoverIndex;
+  int idx = m_useKinectForCursorPos ? m_currentImageSelectIndex
+                                    : m_currentImageHoverIndex;
   m_imageModeImage = getImageFromGalleryIndex(idx);
   m_imageModeImage->maximize();
   m_targetScale = m_imageModeImage->getScaleFactor();

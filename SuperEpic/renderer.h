@@ -80,7 +80,7 @@ private:
   /// \brief Renders all thumbs
   void renderThumbsTexture();
   /// \brief Render a rectangle around the texture under the cursor.
-  void renderRectangle(const SDL_Rect &dest, Uint8 R, Uint8 G, Uint8 B) const;
+  void renderRectangle(const SDL_Rect &dest, int thickness, Uint8 R, Uint8 G, Uint8 B) const;
   /// \brief Update img's position and size for the gallery view mode.
   void updateImageForGalleryView(Image *img, int imgXPos, int imgWidth);
   /// \brief Update thumb's position and size for the gallery view mode.
